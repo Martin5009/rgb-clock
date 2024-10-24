@@ -106,11 +106,9 @@ static void led_matrix_refresh_task(void *pvParameters)
     }
 }
 
-void led_matrix_set_buffer(led_matrix_handle_t led_matrix_handle, led_matrix_rgb_t *buffer)
+void led_matrix_set_buffer(led_matrix_handle_t led_matrix_handle, led_matrix_rgb_t *in_buffer)
 {
-    //Should set the contents of the led matrix frame buffer to a fixed image.
-    //This function will eventually be replaced by a number of tasks which
-    //will dynamically update the buffer depending on the desired operation (e.g. clock).
+    memcpy(led_matrix_handle->buffer_1, in_buffer, sizeof(*led_matrix_handle->buffer_1));
 }
 
 static void led_matrix_write_screen(led_matrix_handle_t led_matrix_handle)
