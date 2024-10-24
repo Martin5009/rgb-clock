@@ -1,0 +1,9 @@
+{
+    "idf.adapterTargetName": "esp32s3",
+    "C_Cpp.default.compilerPath": "/usr/bin/gcc",
+    "idf.port": "/dev/tty.usbserial-21410",
+    "files.associations": {
+        "cstdint": "cpp",
+        "chrono": "c"
+    }
+}
