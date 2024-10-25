@@ -242,8 +242,8 @@ static void led_matrix_write_screen(led_matrix_handle_t led_matrix_handle)
     //turn off final row (to avoid last row appearing brighter than others)
     for (col = 0 ; col < width ; col++)
     {
-        led_top = buffer[row*width + col];
-        led_bottom = buffer[(height/2 + row)*width + col];
+        led_top = buffer[(height/2-1)*width + col];
+        led_bottom = buffer[(height-1)*width + col];
 
         gpio_set_level(io_assign.r1, 0);
         gpio_set_level(io_assign.g1, 0);
