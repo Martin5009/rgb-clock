@@ -2,7 +2,7 @@
 
 static const char TAG[] = "led_matrix";
 
-esp_err_t led_matrix_init(led_matrix_config_t* led_config, led_matrix_handle_t led_matrix_handle) 
+esp_err_t led_matrix_init(led_matrix_config_t *led_config, led_matrix_handle_t *led_matrix_handle) 
 {   
     esp_err_t ret = ESP_OK;
 
@@ -11,6 +11,9 @@ esp_err_t led_matrix_init(led_matrix_config_t* led_config, led_matrix_handle_t l
     out_handle = (led_matrix_handle_t)calloc(1, sizeof(led_matrix_handle_t));
     ESP_GOTO_ON_FALSE(out_handle, ESP_ERR_NO_MEM, err, TAG, "no memory for led matrix device");
 
+    //Create refresh task
+    xTaskCreate(led_matrix_refresh_task, "refresh_matrix", 5000, led_matrix_handle, 5, &led_config->refresh_task);
+
     //Initialize refresh timer
     gptimer_config_t refresh_timer_config = {
         .clk_src = GPTIMER_CLK_SRC_DEFAULT,
@@ -18,7 +21,6 @@ esp_err_t led_matrix_init(led_matrix_config_t* led_config, led_matrix_handle_t l
         .resolution_hz = led_config->refresh_rate * (led_config->height/2) * LED_MATRIX_PWM_1,
         .intr_priority = 0,
     };
-    
     gptimer_new_timer(&refresh_timer_config, &led_config->refresh_timer);
 
     //gptimer alarm setup
@@ -27,10 +29,41 @@ esp_err_t led_matrix_init(led_matrix_config_t* led_config, led_matrix_handle_t l
         .reload_count = 0,
         .flags.auto_reload_on_alarm = 1,
     };
-
     gptimer_set_alarm_action(led_config->refresh_timer, &alarm_config);
 
-   //Create led matrix struct
+    //register timer ISR
+    gptimer_event_callbacks_t event_cb = {
+        .on_alarm = led_matrix_refresh_cb,
+    };
+    gptimer_register_event_callbacks(led_config->refresh_timer, &event_cb, led_config->refresh_task);
+
+    //Initialize GPIO pins
+    uint64_t gpio_bit_mask = (
+        (1ULL<<led_config->io_assign->a)|
+        (1ULL<<led_config->io_assign->b)|
+        (1ULL<<led_config->io_assign->c)|
+        (1ULL<<led_config->io_assign->d)|
+        (1ULL<<led_config->io_assign->r1)|
+        (1ULL<<led_config->io_assign->r2)|
+        (1ULL<<led_config->io_assign->g1)|
+        (1ULL<<led_config->io_assign->g2)|
+        (1ULL<<led_config->io_assign->b1)|
+        (1ULL<<led_config->io_assign->b2)|
+        (1ULL<<led_config->io_assign->oe)|
+        (1ULL<<led_config->io_assign->clk)|
+        (1ULL<<led_config->io_assign->lat)
+    );
+
+    gpio_config_t io_conf = {
+        .intr_type = GPIO_INTR_DISABLE,
+        .mode = GPIO_MODE_OUTPUT,
+        .pin_bit_mask = gpio_bit_mask,
+        .pull_down_en = 0,
+        .pull_up_en = 0,
+    };
+    gpio_config(&io_conf);
+
+    //Create led matrix struct
     out_handle->refresh_rate = led_config->refresh_rate;
     out_handle->width = led_config->width;
     out_handle->height = led_config->height;
@@ -44,6 +77,8 @@ esp_err_t led_matrix_init(led_matrix_config_t* led_config, led_matrix_handle_t l
     out_handle->buffer_1 = calloc(led_config->height * led_config->width, sizeof(led_matrix_rgb_t));
     ESP_GOTO_ON_FALSE(out_handle->buffer_1, ESP_ERR_NO_MEM, err, TAG, "no memory for frame buffer 1");
 
+    *led_matrix_handle = out_handle;
+
     return ESP_OK;
 
 err:
@@ -56,14 +91,12 @@ err:
 
 esp_err_t led_matrix_start_refresh(led_matrix_handle_t led_matrix_handle)
 {   
-    xTaskCreate(led_matrix_refresh_task, "refresh_matrix", 5000, led_matrix_handle, 5, &led_matrix_handle->refresh_task);
     gptimer_enable(led_matrix_handle->refresh_timer);
     return ESP_OK;
 }
 
 esp_err_t led_matrix_stop_refresh(led_matrix_handle_t led_matrix_handle)
 {
-    vTaskDelete(led_matrix_handle->refresh_task);
     gptimer_disable(led_matrix_handle->refresh_timer);
     return ESP_OK;
 }
@@ -113,8 +146,94 @@ void led_matrix_set_buffer(led_matrix_handle_t led_matrix_handle, led_matrix_rgb
 
 static void led_matrix_write_screen(led_matrix_handle_t led_matrix_handle)
 {
-    //Should write to all rows of the matrix based on the contents
-    //of the frame buffer and the current value of pwm_cnt.
+    //Top and bottom halves of the matrix are driven independently
+    led_matrix_rgb_t led_top;
+    led_matrix_rgb_t led_bottom;
+
+    //LED matrix struct members
+    led_matrix_rgb_t *buffer = led_matrix_handle->buffer_1;
+    led_matrix_pwm_levels pwm_level = led_matrix_handle->pwm_level;
+    uint8_t width = led_matrix_handle->width;
+    uint8_t height = led_matrix_handle->height;
+    uint8_t pwm_cnt = led_matrix_handle->pwm_cnt;
+    led_matrix_io_t io_assign = *led_matrix_handle->io_assign;
+
+    //matrix GPIO pins
+    uint8_t r1;
+    uint8_t g1;
+    uint8_t b1;
+    uint8_t r2;
+    uint8_t g2;
+    uint8_t b2;
+    uint8_t a;
+    uint8_t b;
+    uint8_t c;
+    uint8_t d;
+
+    //Loop variables
+    uint8_t row;
+    uint8_t col;
+
+    //Normalization factor for converting 0 - 255
+    //brightness scale to 0 - pwm_level brightness scale
+    float norm = pwm_level/(pow(2, 8*sizeof(led_top.red)) - 1);
+
+    //initialize GPIO output values
+    gpio_set_level(io_assign.oe, 0);
+    gpio_set_level(io_assign.clk, 0);
+    gpio_set_level(io_assign.lat, 0);
+
+    for (row = 0 ; row < height/2 ; row++)
+    {   
+        //create and write row data
+        for (col = 0 ; col < width ; col++)
+        {   
+            led_top = buffer[row*width + col];
+            led_bottom = buffer[(height/2 + row)*width + col];
+            
+            //determine state of R1 G1 B1 and R2 G2 B2 based on PWM counter
+            r1 = (led_top.red * norm >= pwm_cnt);
+            g1 = (led_top.green * norm >= pwm_cnt);
+            b1 = (led_top.blue * norm >= pwm_cnt);
+
+            r2 = (led_bottom.red * norm >= pwm_cnt);
+            g2 = (led_bottom.green * norm >= pwm_cnt);
+            b2 = (led_bottom.blue * norm >= pwm_cnt);
+
+            gpio_set_level(io_assign.r1, r1);
+            gpio_set_level(io_assign.g1, g1);
+            gpio_set_level(io_assign.b1, b1);
+
+            gpio_set_level(io_assign.r2, r2);
+            gpio_set_level(io_assign.g2, g2);
+            gpio_set_level(io_assign.b2, b2);
+
+            //pulse CLK to write color bit
+            gpio_set_level(io_assign.clk, 1);
+            gpio_set_level(io_assign.clk, 0);
+        }
+        
+        //set OE high to disable LEDs
+        gpio_set_level(io_assign.oe, 1);
+
+        //pulse LAT to load shift register contents into matrix
+        gpio_set_level(io_assign.lat, 1);
+        gpio_set_level(io_assign.lat, 0);
+
+        //set ABCD to row number
+        a = (row >> 3) & 0b1;   //bit 3 of row
+        b = (row >> 2) & 0b1;   //bit 2 of row
+        c = (row >> 1) & 0b1;   //bit 1 of row 
+        d = row & 0b1;          //bit 0 of row 
+
+        gpio_set_level(io_assign.a, a);
+        gpio_set_level(io_assign.b, b);
+        gpio_set_level(io_assign.c, c);
+        gpio_set_level(io_assign.d, d);
+
+        //set OE low to reenable LEDs
+        gpio_set_level(io_assign.oe, 0);
+    }
 }
 
 static bool IRAM_ATTR led_matrix_refresh_cb(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_data)
