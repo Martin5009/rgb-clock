@@ -263,10 +263,10 @@ static void led_matrix_write_screen(led_matrix_handle_t led_matrix_handle)
     gpio_set_level(io_assign.lat, 1);
     gpio_set_level(io_assign.lat, 0);
 
-    gpio_set_level(io_assign.a, a);
-    gpio_set_level(io_assign.b, b);
-    gpio_set_level(io_assign.c, c);
-    gpio_set_level(io_assign.d, d);
+    gpio_set_level(io_assign.a, (((height/2-1) >> 3) & 0b1));
+    gpio_set_level(io_assign.b, (((height/2-1) >> 2) & 0b1));
+    gpio_set_level(io_assign.c, (((height/2-1) >> 1) & 0b1));
+    gpio_set_level(io_assign.d, ((height/2-1) & 0b1));
 
     gpio_set_level(io_assign.oe, 0);
 }
