@@ -13,6 +13,7 @@ esp_err_t led_matrix_init(led_matrix_config_t *led_config, led_matrix_handle_t *
 
     //Create refresh task
     xTaskCreate(led_matrix_refresh_task, "refresh_matrix", 5000, led_matrix_handle, 5, &led_config->refresh_task);
+    vTaskSuspend(led_config->refresh_task);
 
     //Initialize refresh timer
     gptimer_config_t refresh_timer_config = {
@@ -91,12 +92,14 @@ err:
 
 esp_err_t led_matrix_start_refresh(led_matrix_handle_t led_matrix_handle)
 {   
+    vTaskResume(led_matrix_handle->refresh_task);
     gptimer_enable(led_matrix_handle->refresh_timer);
     return ESP_OK;
 }
 
 esp_err_t led_matrix_stop_refresh(led_matrix_handle_t led_matrix_handle)
 {
+    vTaskSuspend(led_matrix_handle->refresh_task);
     gptimer_disable(led_matrix_handle->refresh_timer);
     return ESP_OK;
 }
@@ -183,6 +186,7 @@ static void led_matrix_write_screen(led_matrix_handle_t led_matrix_handle)
     gpio_set_level(io_assign.clk, 0);
     gpio_set_level(io_assign.lat, 0);
 
+    //write to matrix
     for (row = 0 ; row < height/2 ; row++)
     {   
         //create and write row data
@@ -234,6 +238,37 @@ static void led_matrix_write_screen(led_matrix_handle_t led_matrix_handle)
         //set OE low to reenable LEDs
         gpio_set_level(io_assign.oe, 0);
     }
+
+    //turn off final row (to avoid last row appearing brighter than others)
+    for (col = 0 ; col < width ; col++)
+    {
+        led_top = buffer[row*width + col];
+        led_bottom = buffer[(height/2 + row)*width + col];
+
+        gpio_set_level(io_assign.r1, 0);
+        gpio_set_level(io_assign.g1, 0);
+        gpio_set_level(io_assign.b1, 0);
+
+        gpio_set_level(io_assign.r2, 0);
+        gpio_set_level(io_assign.g2, 0);
+        gpio_set_level(io_assign.b2, 0);
+
+        //pulse CLK to write color bit
+        gpio_set_level(io_assign.clk, 1);
+        gpio_set_level(io_assign.clk, 0);
+    }
+
+    gpio_set_level(io_assign.oe, 1);
+
+    gpio_set_level(io_assign.lat, 1);
+    gpio_set_level(io_assign.lat, 0);
+
+    gpio_set_level(io_assign.a, a);
+    gpio_set_level(io_assign.b, b);
+    gpio_set_level(io_assign.c, c);
+    gpio_set_level(io_assign.d, d);
+
+    gpio_set_level(io_assign.oe, 0);
 }
 
 static bool IRAM_ATTR led_matrix_refresh_cb(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_data)
