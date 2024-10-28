@@ -127,6 +127,7 @@ void led_matrix_draw_char(led_matrix_handle_t led_matrix_handle, char ch, led_ma
     }
     uint8_t ch_ind = (uint8_t)ch;
     
+    //Get character from font array
     const uint8_t* ch_font = LED_MATRIX_FONT[ch_ind*LED_MATRIX_CHAR_WIDTH];
 
     //Send character to frame buffer
@@ -137,7 +138,7 @@ void led_matrix_draw_char(led_matrix_handle_t led_matrix_handle, char ch, led_ma
     {
         for (j = 0 ; j < LED_MATRIX_CHAR_HEIGHT ; j++)
         {
-            ch_bit = (ch_font[i] >> (LED_MATRIX_CHAR_HEIGHT - j - 1));
+            ch_bit = (ch_font[i] >> (LED_MATRIX_CHAR_HEIGHT - j - 1)) & 1;
 
             if (ch_bit) 
             {
