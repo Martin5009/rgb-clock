@@ -104,6 +104,66 @@ esp_err_t led_matrix_stop_refresh(led_matrix_handle_t led_matrix_handle)
     return ESP_OK;
 }
 
+void led_matrix_draw_char(led_matrix_handle_t led_matrix_handle, char ch, led_matrix_rgb_t color, uint8_t x, uint8_t y)
+{   
+    led_matrix_rgb_t *buffer = led_matrix_handle->buffer_1;
+    uint8_t width = led_matrix_handle->width;
+    uint8_t buffer_offset = x + y*width;
+
+    led_matrix_rgb_t empty_rgb = {
+        .red = 0,
+        .blue = 0,
+        .green = 0,
+    };
+
+    //Convert char to font array index
+    ch = ch & 0x7F;
+    if (ch < ' ') 
+    {
+        ch = 0;
+    }
+    else 
+    {
+        ch -= ' ';
+    }
+    uint8_t ch_ind = (uint8_t)ch;
+    
+    const uint8_t* ch_font = font[ch_ind*LED_MATRIX_CHAR_WIDTH];
+
+    //Send character to frame buffer
+    uint8_t i, j;
+    uint8_t ch_bit;
+
+    for (i = 0 ; i < LED_MATRIX_CHAR_WIDTH ; i++)
+    {
+        for (j = 0 ; j < LED_MATRIX_CHAR_HEIGHT ; j++)
+        {
+            ch_bit = (ch_font[i] >> (LED_MATRIX_CHAR_HEIGHT - j - 1));
+
+            if (ch_bit) 
+            {
+                buffer[buffer_offset + i + j*width] = color;
+            }
+            else 
+            {
+                buffer[buffer_offset + i + j*width] = empty_rgb;
+            }
+        }
+    }
+}
+
+void led_matrix_set_buffer(led_matrix_handle_t led_matrix_handle, led_matrix_rgb_t *in_buffer)
+{
+    memcpy(led_matrix_handle->buffer_1, in_buffer, sizeof(*led_matrix_handle->buffer_1));
+}
+
+void led_matrix_clear_buffer(led_matrix_handle_t led_matrix_handle)
+{   
+    led_matrix_rgb_t *init_buffer = (led_matrix_rgb_t*)calloc(led_matrix_handle->height * led_matrix_handle->width, sizeof(led_matrix_rgb_t));
+    memcpy(led_matrix_handle->buffer_1, init_buffer, led_matrix_handle->height * led_matrix_handle->width * sizeof(led_matrix_rgb_t));
+    free(init_buffer);
+}
+
 static void led_matrix_refresh_task(void *pvParameters)
 {   
     const TickType_t xBlockTime = LED_MATRIX_REFRESH_TIMEOUT_THRESHOLD;
@@ -140,23 +200,6 @@ static void led_matrix_refresh_task(void *pvParameters)
             printf("Timeout: 5000ms since last refresh interrupt");
         }
     }
-}
-
-void led_matrix_draw_char(led_matrix_handle_t led_matrix_handle, unsigned char ch, uint8_t x, uint8_t y)
-{
-
-}
-
-void led_matrix_set_buffer(led_matrix_handle_t led_matrix_handle, led_matrix_rgb_t *in_buffer)
-{
-    memcpy(led_matrix_handle->buffer_1, in_buffer, sizeof(*led_matrix_handle->buffer_1));
-}
-
-void led_matrix_clear_buffer(led_matrix_handle_t led_matrix_handle)
-{   
-    led_matrix_rgb_t *init_buffer = (led_matrix_rgb_t*)calloc(led_matrix_handle->height * led_matrix_handle->width, sizeof(led_matrix_rgb_t));
-    memcpy(led_matrix_handle->buffer_1, init_buffer, led_matrix_handle->height * led_matrix_handle->width * sizeof(led_matrix_rgb_t));
-    free(init_buffer);
 }
 
 static void led_matrix_write_screen(led_matrix_handle_t led_matrix_handle)

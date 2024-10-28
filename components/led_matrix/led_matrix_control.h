@@ -16,6 +16,9 @@
 #include "font.h"
 
 #define LED_MATRIX_REFRESH_TIMEOUT_THRESHOLD pdMS_TO_TICKS(5000)
+#define LED_MATRIX_FONT font
+#define LED_MATRIX_CHAR_WIDTH 5
+#define LED_MATRIX_CHAR_HEIGHT 8
 
 //Defines the number of brightness levels available 
 //for individual R, G, or B LEDs
@@ -104,14 +107,14 @@ esp_err_t led_matrix_start_refresh(led_matrix_handle_t led_matrix_handle);
 esp_err_t led_matrix_stop_refresh(led_matrix_handle_t led_matrix_handle);
 
 /**
- * @brief Draws character on LED matrix at position on top of existing buffer contents
+ * @brief Draws character on LED matrix at position (x, y) on top of existing buffer contents
  * 
  * @param[in] led_matrix_handle LED matrix handle
  * @param[in] ch Character to draw, either as an ASCII code or single-quoted string (e.g. 'a')
- * @param[in] x x-coordinate of the drawn character, where x = 0 is the left edge of display
- * @param[in] y y-coordinate of the drawn character, where y = 0 is the top edge of the display
+ * @param[in] x x-coordinate of the drawn character, where x = 0 is the left edge of display/char
+ * @param[in] y y-coordinate of the drawn character, where y = 0 is the top edge of the display/char
 */
-void led_matrix_draw_char(led_matrix_handle_t led_matrix_handle, unsigned char ch, uint8_t x, uint8_t y);
+void led_matrix_draw_char(led_matrix_handle_t led_matrix_handle, char ch, led_matrix_rgb_t color, uint8_t x, uint8_t y);
 
 /**
  * @brief Set frame buffer
