@@ -103,10 +103,14 @@ esp_err_t led_matrix_start_refresh(led_matrix_handle_t led_matrix_handle);
 esp_err_t led_matrix_stop_refresh(led_matrix_handle_t led_matrix_handle);
 
 /**
- * @brief Manually set the led_matrix frame buffer
+ * @brief Set frame buffer
 */
 void led_matrix_set_buffer(led_matrix_handle_t led_matrix_handle, led_matrix_rgb_t *buffer);
 
+/**
+ * @brief Clear frame buffer
+*/
+void led_matrix_clear_buffer(led_matrix_handle_t led_matrix_handle);
 
 /**
  * @brief Refresh task that runs upon receiving refresh interrupt

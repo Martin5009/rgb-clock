@@ -75,7 +75,7 @@ esp_err_t led_matrix_init(led_matrix_config_t *led_config, led_matrix_handle_t *
     out_handle->io_assign = led_config->io_assign;
 
     //Initialize frame buffer 1
-    out_handle->buffer_1 = calloc(led_config->height * led_config->width, sizeof(led_matrix_rgb_t));
+    out_handle->buffer_1 = (led_matrix_rgb_t*)calloc(led_config->height * led_config->width, sizeof(led_matrix_rgb_t));
     ESP_GOTO_ON_FALSE(out_handle->buffer_1, ESP_ERR_NO_MEM, err, TAG, "no memory for frame buffer 1");
 
     *led_matrix_handle = out_handle;
@@ -145,6 +145,13 @@ static void led_matrix_refresh_task(void *pvParameters)
 void led_matrix_set_buffer(led_matrix_handle_t led_matrix_handle, led_matrix_rgb_t *in_buffer)
 {
     memcpy(led_matrix_handle->buffer_1, in_buffer, sizeof(*led_matrix_handle->buffer_1));
+}
+
+void led_matrix_clear_buffer(led_matrix_handle_t led_matrix_handle)
+{   
+    led_matrix_rgb_t *init_buffer = (led_matrix_rgb_t*)calloc(led_matrix_handle->height * led_matrix_handle->width, sizeof(led_matrix_rgb_t));
+    memcpy(led_matrix_handle->buffer_1, init_buffer, led_matrix_handle->height * led_matrix_handle->width * sizeof(led_matrix_rgb_t));
+    free(init_buffer);
 }
 
 static void led_matrix_write_screen(led_matrix_handle_t led_matrix_handle)
