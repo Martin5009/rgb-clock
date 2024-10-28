@@ -19,7 +19,7 @@ esp_err_t led_matrix_init(led_matrix_config_t *led_config, led_matrix_handle_t *
     gptimer_config_t refresh_timer_config = {
         .clk_src = GPTIMER_CLK_SRC_DEFAULT,
         .direction = GPTIMER_COUNT_UP,
-        .resolution_hz = led_config->refresh_rate * (led_config->height/2) * LED_MATRIX_PWM_1,
+        .resolution_hz = led_config->refresh_rate * (led_config->height/2),
         .intr_priority = 0,
     };
     gptimer_new_timer(&refresh_timer_config, &led_config->refresh_timer);
