@@ -1,5 +1,4 @@
 set(srcs "led_matrix_control.c"
-         "led_matrix_char.c"
          )
 
 set(include "."

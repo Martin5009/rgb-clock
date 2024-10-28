@@ -13,6 +13,7 @@
 #include "sdkconfig.h"
 #include "driver/gptimer.h"
 #include "driver/gpio.h"
+#include "font.h"
 
 #define LED_MATRIX_REFRESH_TIMEOUT_THRESHOLD pdMS_TO_TICKS(5000)
 
@@ -101,6 +102,16 @@ esp_err_t led_matrix_start_refresh(led_matrix_handle_t led_matrix_handle);
  * @param[in] led_matrix_handle LED matrix handle
 */
 esp_err_t led_matrix_stop_refresh(led_matrix_handle_t led_matrix_handle);
+
+/**
+ * @brief Draws character on LED matrix at position on top of existing buffer contents
+ * 
+ * @param[in] led_matrix_handle LED matrix handle
+ * @param[in] ch Character to draw, either as an ASCII code or single-quoted string (e.g. 'a')
+ * @param[in] x x-coordinate of the drawn character, where x = 0 is the left edge of display
+ * @param[in] y y-coordinate of the drawn character, where y = 0 is the top edge of the display
+*/
+void led_matrix_draw_char(led_matrix_handle_t led_matrix_handle, unsigned char ch, uint8_t x, uint8_t y);
 
 /**
  * @brief Set frame buffer

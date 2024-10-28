@@ -142,6 +142,11 @@ static void led_matrix_refresh_task(void *pvParameters)
     }
 }
 
+void led_matrix_draw_char(led_matrix_handle_t led_matrix_handle, unsigned char ch, uint8_t x, uint8_t y)
+{
+
+}
+
 void led_matrix_set_buffer(led_matrix_handle_t led_matrix_handle, led_matrix_rgb_t *in_buffer)
 {
     memcpy(led_matrix_handle->buffer_1, in_buffer, sizeof(*led_matrix_handle->buffer_1));
