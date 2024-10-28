@@ -13,7 +13,7 @@
 #include "sdkconfig.h"
 #include "driver/gptimer.h"
 #include "driver/gpio.h"
-#include "font.h"
+#include "fonts.h"
 
 #define LED_MATRIX_REFRESH_TIMEOUT_THRESHOLD pdMS_TO_TICKS(5000)
 #define LED_MATRIX_FONT font
@@ -61,7 +61,6 @@ typedef struct {
     uint8_t refresh_rate;           
     uint8_t width;
     uint8_t height;
-    uint8_t pwm_cnt;
     led_matrix_pwm_levels pwm_level;
     TaskHandle_t refresh_task;      //NULL task handle
     gptimer_handle_t refresh_timer; //NULL gptimer handle
@@ -125,20 +124,5 @@ void led_matrix_set_buffer(led_matrix_handle_t led_matrix_handle, led_matrix_rgb
  * @brief Clear frame buffer
 */
 void led_matrix_clear_buffer(led_matrix_handle_t led_matrix_handle);
-
-/**
- * @brief Refresh task that runs upon receiving refresh interrupt
-*/
-static void led_matrix_refresh_task(void *pvParameters);
-
-/**
- * @brief Directly controls LED matrix GPIO pins
-*/
-static void led_matrix_write_screen(led_matrix_handle_t led_matrix_handle);
-
-/**
- * @brief Refresh interrupt handler that defers to refresh task
-*/
-static bool IRAM_ATTR led_matrix_refresh_cb(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_data);
 
 
