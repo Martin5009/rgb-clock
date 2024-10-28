@@ -15,6 +15,7 @@
 
 #define GPIO_OUTPUT_PIN_SEL  ((1ULL<<GPIO_NUM_1) | (1ULL<<GPIO_NUM_2) | (1ULL<<GPIO_NUM_41) | (1ULL<<GPIO_NUM_40) | (1ULL<<GPIO_NUM_38) | (1ULL<<GPIO_NUM_37))
 #define I2C_MASTER_FREQUENCY 100000
+#define TIME_REFRESH_PERIOD_MS 250
 
 QueueHandle_t time_mailbox;
 i2c_master_bus_handle_t bus_handle;
@@ -31,6 +32,24 @@ i2c_ds3231_dec_time_t current_time = {
 // Task Definitions
 /*--------------------------------------*/
 
+void display_time_task(void *pvParameters)
+{
+    i2c_ds3231_dec_time_t time_buffer = {
+        .second = 0,
+        .minute = 0,
+        .hour = 0,
+        .day = 0,
+        .month = 0
+    };
+
+    for (;;)
+    {
+        xQueuePeek(time_mailbox, &time_buffer, 0);
+
+        vTaskDelay(pdMS_TO_TICKS(TIME_REFRESH_PERIOD_MS));
+    }
+}
+
 void fetch_time_task(void *pvParameters)
 {
     for (;;)
@@ -43,7 +62,7 @@ void fetch_time_task(void *pvParameters)
     }
 }
 
-void show_time_task(void *pvParameters)
+void print_time_task(void *pvParameters)
 {
     i2c_ds3231_dec_time_t time_buffer = {
         .second = 0,
@@ -52,6 +71,7 @@ void show_time_task(void *pvParameters)
         .day = 0,
         .month = 0
     };
+
     for (;;) 
     {
         xQueuePeek(time_mailbox, &time_buffer, 0);
@@ -136,15 +156,6 @@ void app_main(void)
     TaskHandle_t fetch_time_handle = NULL;
     xTaskCreate(fetch_time_task, "fetch_time", 1200, NULL, 2, &fetch_time_handle);
 
-    TaskHandle_t show_time_handle = NULL;
-    xTaskCreate(show_time_task, "show_time", 2000, NULL, 2, &show_time_handle);
-
-    TaskHandle_t blink_handle = NULL;
-    xTaskCreate(blink_task, "blink", 1000, NULL, 1, &blink_handle);
-
-    TaskHandle_t fetch_time_usage_handle = NULL;
-    xTaskCreate(max_stack_usage_task, "stack_usage2", 2000, (void *)fetch_time_handle, 1, &fetch_time_usage_handle);
-
-    TaskHandle_t show_time_usage_handle = NULL;
-    xTaskCreate(max_stack_usage_task, "stack_usage1", 2000, (void *)show_time_handle, 1, &show_time_usage_handle);
+    TaskHandle_t print_time_handle = NULL;
+    xTaskCreate(print_time_task, "show_time", 2000, NULL, 2, &print_time_handle);
 }
