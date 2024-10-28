@@ -106,10 +106,9 @@ esp_err_t led_matrix_stop_refresh(led_matrix_handle_t led_matrix_handle)
 
 void led_matrix_draw_char(led_matrix_handle_t led_matrix_handle, char ch, led_matrix_rgb_t color, uint8_t x, uint8_t y)
 {   
-    led_matrix_rgb_t *buffer = led_matrix_handle->buffer_1;
     uint8_t width = led_matrix_handle->width;
     uint8_t buffer_offset = x + y*width;
-
+    led_matrix_rgb_t *buffer = led_matrix_handle->buffer_1;
     led_matrix_rgb_t empty_rgb = {
         .red = 0,
         .blue = 0,
