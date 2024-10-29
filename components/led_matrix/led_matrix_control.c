@@ -1,3 +1,13 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <math.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_check.h"
+#include "esp_system.h"
+#include "driver/gptimer.h"
+#include "driver/gpio.h"
 #include "led_matrix_control.h"
 
 static const char TAG[] = "led_matrix";
@@ -128,7 +138,7 @@ static void led_matrix_write_screen(led_matrix_handle_t led_matrix_handle)
 
 static void led_matrix_refresh_task(void *pvParameters)
 {   
-    const TickType_t xBlockTime = LED_MATRIX_REFRESH_TIMEOUT_THRESHOLD;
+    const TickType_t xBlockTime = LED_MATRIX_REFRESH_TIMEOUT_MS;
     uint32_t ulNotifiedValue;
 
     led_matrix_handle_t led_matrix_handle = (led_matrix_handle_t)pvParameters;

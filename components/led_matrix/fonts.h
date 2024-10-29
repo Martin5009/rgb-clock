@@ -1,3 +1,6 @@
+#ifndef FONT_H
+#define FONT_H
+
 extern const unsigned char sevenlinedigital_font[96][4];
 
 extern const unsigned char aztech_font[96][6];
@@ -14,3 +17,4 @@ extern const unsigned char minimum_font[96][6];
 
 extern const unsigned char raumsond_font[96][5];
 
+#endif

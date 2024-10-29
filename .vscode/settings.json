@@ -4,6 +4,15 @@
     "idf.port": "/dev/tty.usbserial-21410",
     "files.associations": {
         "cstdint": "cpp",
-        "chrono": "c"
+        "chrono": "c",
+        "string.h": "c",
+        "esp_log.h": "c",
+        "esp_types.h": "c",
+        "esp_check.h": "c",
+        "cdefs.h": "c",
+        "sdkconfig.h": "c",
+        "stdlib.h": "c",
+        "stdint.h": "c",
+        "resource.h": "c"
     }
 }

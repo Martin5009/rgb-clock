@@ -1,21 +1,14 @@
-#include <stdio.h>
+#ifndef LED_MATRIX_CONTROL_H
+#define LED_MATRIX_CONTROL_H
+
 #include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "freertos/queue.h"
-#include "esp_check.h"
-#include "esp_log.h"
-#include "esp_types.h"
-#include "esp_system.h"
-#include "sdkconfig.h"
+#include "esp_err.h"
 #include "driver/gptimer.h"
 #include "driver/gpio.h"
 #include "fonts.h"
 
-#define LED_MATRIX_REFRESH_TIMEOUT_THRESHOLD pdMS_TO_TICKS(5000)
+#define LED_MATRIX_REFRESH_TIMEOUT_MS pdMS_TO_TICKS(5000)
 #define LED_MATRIX_FONT font
 #define LED_MATRIX_CHAR_WIDTH 5
 #define LED_MATRIX_CHAR_HEIGHT 8
@@ -125,4 +118,4 @@ void led_matrix_set_buffer(led_matrix_handle_t led_matrix_handle, led_matrix_rgb
 */
 void led_matrix_clear_buffer(led_matrix_handle_t led_matrix_handle);
 
-
+#endif
