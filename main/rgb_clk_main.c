@@ -155,19 +155,19 @@ void led_matrix_blink_task(void *pvParameters)
 
     led_matrix_rgb_t red_rgb = {
             .red = 255,
-            .green = 0,
-            .blue = 0,
+            .green = 127,
+            .blue = 127,
         };
     
     led_matrix_rgb_t green_rgb = {
-            .red = 0,
+            .red = 127,
             .green = 255,
-            .blue = 0,
+            .blue = 127,
         };
     
     led_matrix_rgb_t blue_rgb = {
-            .red = 0,
-            .green = 0,
+            .red = 127,
+            .green = 127,
             .blue = 255,
         };
 
