@@ -13,7 +13,6 @@
 #include "led_matrix_control.h"
 #include "esp_console.h"
 
-#define GPIO_OUTPUT_PIN_SEL  ((1ULL<<GPIO_NUM_1) | (1ULL<<GPIO_NUM_2) | (1ULL<<GPIO_NUM_41) | (1ULL<<GPIO_NUM_40) | (1ULL<<GPIO_NUM_38) | (1ULL<<GPIO_NUM_37))
 #define I2C_MASTER_FREQUENCY 100000
 #define TIME_REFRESH_PERIOD_MS 250
 
@@ -37,9 +36,11 @@
 #define LED_MATRIX_GPIO_B1 GPIO_NUM_27
 #define LED_MATRIX_GPIO_B2 GPIO_NUM_28
 
+#define TIME_DISPLAY_COLOR_R 255
+#define TIME_DISPLAY_COLOR_G 255
+#define TIME_DISPLAY_COLOR_B 255
+
 QueueHandle_t time_mailbox;
-i2c_master_bus_handle_t bus_handle;
-i2c_ds3231_handle_t ds3231_handle;
 i2c_ds3231_dec_time_t current_time = {
         .second = 0,
         .minute = 0,
@@ -53,7 +54,9 @@ i2c_ds3231_dec_time_t current_time = {
 /*--------------------------------------*/
 
 void display_time_task(void *pvParameters)
-{
+{   
+    led_matrix_handle_t led_matrix_handle = (led_matrix_handle_t)pvParameters;
+
     i2c_ds3231_dec_time_t time_buffer = {
         .second = 0,
         .minute = 0,
@@ -62,9 +65,30 @@ void display_time_task(void *pvParameters)
         .month = 0
     };
 
+    led_matrix_rgb_t time_color = {
+        .red = TIME_DISPLAY_COLOR_R,
+        .green = TIME_DISPLAY_COLOR_G,
+        .blue = TIME_DISPLAY_COLOR_B,
+    };
+
+    char time_str[8];
+
+    uint8_t i = 0;
+
     for (;;)
     {
+        //Fetch current time
         xQueuePeek(time_mailbox, &time_buffer, 0);
+
+        //Convert time to string
+        i2c_ds3231_print_dec_time(&time_buffer, time_str);
+        
+        //Draw time string one char at a time
+        led_matrix_clear_buffer(led_matrix_handle);
+        for (i = 0 ; i < sizeof(time_str) ; i++)
+        {
+            led_matrix_draw_char(led_matrix_handle, time_str[i], time_color, i*LED_MATRIX_CHAR_WIDTH, 0);
+        }
 
         vTaskDelay(pdMS_TO_TICKS(TIME_REFRESH_PERIOD_MS));
     }
@@ -72,13 +96,15 @@ void display_time_task(void *pvParameters)
 
 void fetch_time_task(void *pvParameters)
 {
+    i2c_ds3231_handle_t ds3231_handle = (i2c_ds3231_handle_t)pvParameters;
+
     for (;;)
     {   
         i2c_ds3231_get_time(ds3231_handle, &current_time);
 
         xQueueOverwrite(time_mailbox, &current_time);
 
-        vTaskDelay(pdMS_TO_TICKS(100));
+        vTaskDelay(pdMS_TO_TICKS(TIME_REFRESH_PERIOD_MS));
     }
 }
 
@@ -92,11 +118,14 @@ void print_time_task(void *pvParameters)
         .month = 0
     };
 
+    char time_str[8];
+
     for (;;) 
     {
         xQueuePeek(time_mailbox, &time_buffer, 0);
 
-        i2c_ds3231_print_dec_time(&time_buffer);
+        i2c_ds3231_print_dec_time(&time_buffer, time_str);
+        printf(time_str);
 
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
@@ -119,15 +148,49 @@ void max_stack_usage_task(void *pvParameters)
     }
 }
 
-void blink_task(void *pvParameters) 
-{
-    for(;;)
-    {
-    gpio_set_level(GPIO_NUM_1,1);
-    vTaskDelay(pdMS_TO_TICKS(500));
+void led_matrix_blink_task(void *pvParameters)
+{   
+    led_matrix_handle_t led_matrix_handle = (led_matrix_handle_t)pvParameters;
+    TickType_t delay = pdMS_TO_TICKS(1000);
 
-    gpio_set_level(GPIO_NUM_1,0);
-    vTaskDelay(pdMS_TO_TICKS(500));
+    led_matrix_rgb_t red_rgb = {
+            .red = 255,
+            .green = 0,
+            .blue = 0,
+        };
+    
+    led_matrix_rgb_t green_rgb = {
+            .red = 0,
+            .green = 255,
+            .blue = 0,
+        };
+    
+    led_matrix_rgb_t blue_rgb = {
+            .red = 0,
+            .green = 0,
+            .blue = 255,
+        };
+
+    //Start LED matrix refresh cycle
+    led_matrix_start_refresh(led_matrix_handle);
+
+    for (;;)
+    {   
+        //Clear screen
+        led_matrix_clear_buffer(led_matrix_handle);
+        vTaskDelay(delay);
+
+        //Draw the character 'a' at position (0, 0)
+        led_matrix_draw_char(led_matrix_handle, 'a', red_rgb, 0, 0);
+        vTaskDelay(delay);
+
+        //Draw the character 'b' at position (5, 0)
+        led_matrix_draw_char(led_matrix_handle, 'b', green_rgb, 5, 0);
+        vTaskDelay(delay);
+
+        //Draw the character 'c' at position (10, 0)
+        led_matrix_draw_char(led_matrix_handle, 'c', blue_rgb, 10, 0);
+        vTaskDelay(delay);
     }
 }
 
@@ -137,15 +200,8 @@ void blink_task(void *pvParameters)
 
 void app_main(void)
 {
-    // Configure GPIO
-    gpio_config_t io_conf = {
-        .intr_type = GPIO_INTR_DISABLE,
-        .mode = GPIO_MODE_OUTPUT,
-        .pin_bit_mask = GPIO_OUTPUT_PIN_SEL,
-        .pull_down_en = 0,
-        .pull_up_en = 0,
-    };
-    gpio_config(&io_conf);
+    //Create mailbox to hold current time
+    time_mailbox = xQueueCreate(1, sizeof(i2c_ds3231_dec_time_t));
 
     //Initialize master i2c bus
     i2c_master_bus_config_t i2c_mst_config = {
@@ -156,21 +212,23 @@ void app_main(void)
         .glitch_ignore_cnt = 7,
         .flags.enable_internal_pullup = true,
     };
+
+    i2c_master_bus_handle_t bus_handle = NULL;
     ESP_ERROR_CHECK(i2c_new_master_bus(&i2c_mst_config, &bus_handle));
 
-    //Initialize DS3231 as i2c device
+    //Initialize DS3231
     i2c_ds3231_config_t i2c_ds3231_config = {
         .ds3231_device.scl_speed_hz = I2C_MASTER_FREQUENCY,
         .ds3231_device.device_address = 0b1101000,
         .hr_mode = I2C_DS3231_24HR_MODE
     };
+
+    i2c_ds3231_handle_t ds3231_handle = NULL;
     ESP_ERROR_CHECK(i2c_ds3231_init(bus_handle, &i2c_ds3231_config, &ds3231_handle));
 
     //Initialize LED matrix
     TaskHandle_t led_matrix_refresh_task = NULL;
     gptimer_handle_t led_matrix_timer = NULL;
-    led_matrix_handle_t led_matrix = NULL;
-
     led_matrix_io_t led_matrix_io_assign = {
         .a = LED_MATRIX_GPIO_A,
         .b = LED_MATRIX_GPIO_B,
@@ -197,48 +255,19 @@ void app_main(void)
         .io_assign = &led_matrix_io_assign,
     };
 
-    led_matrix_init(&led_matrix_config, &led_matrix);
+    led_matrix_handle_t led_matrix_handle = NULL;
+    led_matrix_init(&led_matrix_config, &led_matrix_handle);
 
-    /**
-     * Start: LED Matrix Test Code
-    */
+    //Test LED matrix with a simple "blink" task
+    TaskHandle_t blink_matrix_handle = NULL;
+    xTaskCreate(led_matrix_blink_task, "blink_matrix", 5000, led_matrix_handle, 2, &blink_matrix_handle);
 
-    led_matrix_rgb_t red_rgb = {
-        .red = 255,
-        .green = 0,
-        .blue = 0,
-    };
-
-    //Draw the character 'a' at position (0, 0)
-    led_matrix_clear_buffer(led_matrix);
-    led_matrix_draw_char(led_matrix, 'a', red_rgb, 0, 0);
-
-    //Start LED matrix refresh cycle
-    led_matrix_start_refresh(led_matrix);
-
-    /**
-     * End: LED Matrix Test Code
-    */
-
-
-    /**
-     * Start: DS3231 RTC Test Code
-    */
-    
-    //Set time
+    //Test DS3231 by reading and printing time
     i2c_ds3231_set_time(ds3231_handle, &current_time);
 
-    //Create mailbox to hold current time
-    time_mailbox = xQueueCreate(1, sizeof(i2c_ds3231_dec_time_t));
-
-    //Create tasks and handles
     TaskHandle_t fetch_time_handle = NULL;
-    xTaskCreate(fetch_time_task, "fetch_time", 1200, NULL, 2, &fetch_time_handle);
+    xTaskCreate(fetch_time_task, "fetch_time", 1200, ds3231_handle, 2, &fetch_time_handle);
 
     TaskHandle_t print_time_handle = NULL;
     xTaskCreate(print_time_task, "show_time", 2000, NULL, 2, &print_time_handle);
-
-    /**
-     * End: DS3231 RTC Test Code
-    */
 }

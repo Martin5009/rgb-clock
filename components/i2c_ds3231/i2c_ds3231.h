@@ -48,7 +48,7 @@ esp_err_t i2c_ds3231_init(i2c_master_bus_handle_t bus_handle, const i2c_ds3231_c
  * @brief Set time on DS3231
  * 
  * @param[in] ds3231_handle DS3231 device handle
- * @param[in] time Time to set
+ * @param[in] dec_time Time to set
  * @return ESP_OK: Time successfully set. ESP_FAIL: Failed to set time.
 */
 esp_err_t i2c_ds3231_set_time(i2c_ds3231_handle_t ds3231_handle, const i2c_ds3231_dec_time_t *dec_time);
@@ -57,7 +57,7 @@ esp_err_t i2c_ds3231_set_time(i2c_ds3231_handle_t ds3231_handle, const i2c_ds323
  * @brief Get time from DS3231
  * 
  * @param[in] ds3231_handle DS3231 device handle
- * @param[out] time Time fetched from DS3231
+ * @param[out] dec_time Time fetched from DS3231
  * @return ESP_OK: Time successfully fetched. ESP_FAIL: Failed to fetch time.
 */
 esp_err_t i2c_ds3231_get_time(i2c_ds3231_handle_t ds3231_handle, i2c_ds3231_dec_time_t *dec_time);
@@ -88,7 +88,10 @@ esp_err_t i2c_ds3231_read(i2c_ds3231_handle_t ds3231_handle, uint32_t address, u
 
 /**
  * @brief Print i2c_ds3231_dec_time_t struct
+ * 
+ * @param[in] dec_time Time to print
+ * @param[out] str_buffer Buffer into which the string prints
  */
-void i2c_ds3231_print_dec_time(i2c_ds3231_dec_time_t *dec_time);
+void i2c_ds3231_print_dec_time(i2c_ds3231_dec_time_t *dec_time, char* str_buffer);
 
 #endif
