@@ -45,10 +45,12 @@
 //Global Device Handles
 i2c_ds3231_handle_t ds3231_handle = NULL;
 led_matrix_handle_t led_matrix_handle = NULL;
+
+//Global System Time Mailbox
 QueueHandle_t time_mailbox = NULL;
 
 /*--------------------------------------*/
-// Task Definitions
+// Tasks
 /*--------------------------------------*/
 
 void display_time_task(void *pvParameters)
@@ -225,6 +227,28 @@ int console_time_cmd_func(int argc, char **argv)
             return 1;
         }
 
+        //Check if arguments represent a valid time
+        if ((atoi(argv[1]) > 12) | (atoi(argv[1]) < 1)) {
+            printf("ERROR: month value outside valid range (1-12)\n");
+            return 1;
+        }
+        if ((atoi(argv[2]) > 31) | (atoi(argv[2]) < 1)) {
+            printf("ERROR: day value outside valid range (1-31)\n");
+            return 1;
+        }
+        if ((atoi(argv[3]) > 24) | (atoi(argv[3]) < 0)) {
+            printf("ERROR: hour value outside valid range (0-24)\n");
+            return 1;
+        }
+        if ((atoi(argv[4]) > 59) | (atoi(argv[4]) < 0)) {
+            printf("ERROR: minute value outside valid range (0-59)\n");
+            return 1;
+        }
+        if ((atoi(argv[5]) > 59) | (atoi(argv[5]) < 0)) {
+            printf("ERROR: second value outside valid range (0-59)\n");
+            return 1;
+        }
+
         time_buffer.month = atoi(argv[1]);
         time_buffer.day = atoi(argv[2]);
         time_buffer.hour = atoi(argv[3]);
@@ -234,9 +258,9 @@ int console_time_cmd_func(int argc, char **argv)
         i2c_ds3231_set_time(ds3231_handle, &time_buffer);
 
         i2c_ds3231_print_dec_time(&time_buffer, str_buffer, true);
-        printf("time: new time is ");
+        printf("time: new time is [");
         printf(str_buffer);
-        printf("\n");
+        printf("]\n");
 
     }
     else if (strcmp(sub_cmd, "get"))
@@ -249,20 +273,20 @@ int console_time_cmd_func(int argc, char **argv)
         xQueuePeek(time_mailbox, &time_buffer, 0);
 
         i2c_ds3231_print_dec_time(&time_buffer, str_buffer, true);
-        printf("time: current time is ");
+        printf("time: current time is [");
         printf(str_buffer);
-        printf("\n");
+        printf("]\n");
     }
     else {
         printf("time: unrecognized command\n");
         return 1;
     }
-    
+
     return 0;
 }
 
 /*--------------------------------------*/
-// Entry Point Definition
+// Entry Point
 /*--------------------------------------*/
 
 void app_main(void)
