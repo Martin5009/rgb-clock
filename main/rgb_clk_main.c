@@ -13,6 +13,8 @@
 #include "led_matrix_control.h"
 #include "esp_console.h"
 
+#define PROMPT_STR CONFIG_IDF_TARGET
+
 #define I2C_MASTER_FREQUENCY 100000
 #define TIME_REFRESH_PERIOD_MS 250
 
@@ -40,14 +42,10 @@
 #define TIME_DISPLAY_COLOR_G 255
 #define TIME_DISPLAY_COLOR_B 255
 
-QueueHandle_t time_mailbox;
-i2c_ds3231_dec_time_t current_time = {
-        .second = 0,
-        .minute = 0,
-        .hour = 0,
-        .day = 1,
-        .month = 1
-    };
+//Global Device Handles
+i2c_ds3231_handle_t ds3231_handle = NULL;
+led_matrix_handle_t led_matrix_handle = NULL;
+QueueHandle_t time_mailbox = NULL;
 
 /*--------------------------------------*/
 // Task Definitions
@@ -81,7 +79,7 @@ void display_time_task(void *pvParameters)
         xQueuePeek(time_mailbox, &time_buffer, 0);
 
         //Convert time to string
-        i2c_ds3231_print_dec_time(&time_buffer, time_str);
+        i2c_ds3231_print_dec_time(&time_buffer, time_str, false);
         
         //Draw time string one char at a time
         led_matrix_clear_buffer(led_matrix_handle);
@@ -98,11 +96,19 @@ void fetch_time_task(void *pvParameters)
 {
     i2c_ds3231_handle_t ds3231_handle = (i2c_ds3231_handle_t)pvParameters;
 
+    i2c_ds3231_dec_time_t time_buffer = {
+        .second = 0,
+        .minute = 0,
+        .hour = 0,
+        .day = 0,
+        .month = 0,
+    };
+
     for (;;)
     {   
-        i2c_ds3231_get_time(ds3231_handle, &current_time);
+        i2c_ds3231_get_time(ds3231_handle, &time_buffer);
 
-        xQueueOverwrite(time_mailbox, &current_time);
+        xQueueOverwrite(time_mailbox, &time_buffer);
 
         vTaskDelay(pdMS_TO_TICKS(TIME_REFRESH_PERIOD_MS));
     }
@@ -124,7 +130,7 @@ void print_time_task(void *pvParameters)
     {
         xQueuePeek(time_mailbox, &time_buffer, 0);
 
-        i2c_ds3231_print_dec_time(&time_buffer, time_str);
+        i2c_ds3231_print_dec_time(&time_buffer, time_str, true);
         printf(time_str);
 
         vTaskDelay(pdMS_TO_TICKS(1000));
@@ -195,6 +201,55 @@ void led_matrix_blink_task(void *pvParameters)
 }
 
 /*--------------------------------------*/
+// Console Commands
+/*--------------------------------------*/
+
+int console_time_cmd_func(int argc, char **argv)
+{
+    char *sub_cmd = argv[0];
+
+    i2c_ds3231_dec_time_t time_buffer = {
+        .second = 0,
+        .minute = 0,
+        .hour = 0,
+        .day = 0,
+        .month = 0,
+    };
+
+    char *str_buffer = NULL;
+
+    if (strcmp(sub_cmd, "set"))
+    {
+        time_buffer.month = atoi(argv[1]);
+        time_buffer.day = atoi(argv[2]);
+        time_buffer.hour = atoi(argv[3]);
+        time_buffer.minute = atoi(argv[4]);
+        time_buffer.second = atoi(argv[5]);
+
+        i2c_ds3231_set_time(ds3231_handle, &time_buffer);
+
+        i2c_ds3231_print_dec_time(&time_buffer, str_buffer, true);
+        printf("time: new time is ");
+        printf(str_buffer);
+        printf("\n");
+
+    }
+    else if (strcmp(sub_cmd, "get"))
+    {
+        xQueuePeek(time_mailbox, &time_buffer, 0);
+        
+        i2c_ds3231_print_dec_time(&time_buffer, str_buffer, true);
+        printf("time: current time is ");
+        printf(str_buffer);
+        printf("\n");
+    }
+    else {
+        printf("time: unrecognized command\n");
+    }
+    return 0;
+}
+
+/*--------------------------------------*/
 // Entry Point Definition
 /*--------------------------------------*/
 
@@ -223,7 +278,6 @@ void app_main(void)
         .hr_mode = I2C_DS3231_24HR_MODE
     };
 
-    i2c_ds3231_handle_t ds3231_handle = NULL;
     ESP_ERROR_CHECK(i2c_ds3231_init(bus_handle, &i2c_ds3231_config, &ds3231_handle));
 
     //Initialize LED matrix
@@ -255,19 +309,47 @@ void app_main(void)
         .io_assign = &led_matrix_io_assign,
     };
 
-    led_matrix_handle_t led_matrix_handle = NULL;
     led_matrix_init(&led_matrix_config, &led_matrix_handle);
+
+    //Create console
+    esp_console_repl_t *repl = NULL;
+    esp_console_repl_config_t repl_config = ESP_CONSOLE_REPL_CONFIG_DEFAULT();
+    repl_config.prompt = PROMPT_STR ">";
+    repl_config.max_cmdline_length = 0;
+
+    esp_console_dev_uart_config_t hw_config = ESP_CONSOLE_DEV_UART_CONFIG_DEFAULT();
+
+    ESP_ERROR_CHECK(esp_console_new_repl_uart(&hw_config, &repl_config, &repl));
+
+    //Register console commands
+    const char *console_time_cmd_help = 
+        "usage: time <command> [<args]\n"
+        "\n"
+        "commands:\n"
+        "   set <month> <day> <hour> <minute> <second>\n"
+        "       Set system time\n"
+        "   get\n"
+        "       Prints system time to console\n";
+
+    esp_console_cmd_t console_time_cmd = {
+        .command = "time",
+        .help = console_time_cmd_help,
+        .hint = NULL,
+        .func = console_time_cmd_func,
+        .argtable = NULL,
+    };
+
+    esp_console_register_help_command();
+    esp_console_cmd_register(&console_time_cmd);
+
+    //Start console
+    ESP_ERROR_CHECK(esp_console_start_repl(repl));
 
     //Test LED matrix with a simple "blink" task
     TaskHandle_t blink_matrix_handle = NULL;
     xTaskCreate(led_matrix_blink_task, "blink_matrix", 5000, led_matrix_handle, 2, &blink_matrix_handle);
 
-    //Test DS3231 by reading and printing time
-    i2c_ds3231_set_time(ds3231_handle, &current_time);
-
+    //Start fetch time task for DS3231
     TaskHandle_t fetch_time_handle = NULL;
     xTaskCreate(fetch_time_task, "fetch_time", 1200, ds3231_handle, 2, &fetch_time_handle);
-
-    TaskHandle_t print_time_handle = NULL;
-    xTaskCreate(print_time_task, "show_time", 2000, NULL, 2, &print_time_handle);
 }

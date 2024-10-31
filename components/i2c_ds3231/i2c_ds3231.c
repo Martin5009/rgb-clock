@@ -312,7 +312,12 @@ esp_err_t i2c_ds3231_read(i2c_ds3231_handle_t ds3231_handle, uint32_t address, u
     return i2c_master_transmit_receive(ds3231_handle->i2c_dev, ds3231_handle->buffer, I2C_DS3231_ADR_BYTE_LEN, data, size, -1);
 }
 
-void i2c_ds3231_print_dec_time(i2c_ds3231_dec_time_t *dec_time, char* str_buffer)
-{
-    sprintf(str_buffer, "%02u:%02u:%02u", dec_time->hour, dec_time->minute, dec_time->second);
+void i2c_ds3231_print_dec_time(i2c_ds3231_dec_time_t *dec_time, char* str_buffer, bool incl_date)
+{   
+    if (incl_date){
+        sprintf(str_buffer, "%02u/%02u %02u:%02u:%02u", dec_time->month, dec_time->day, dec_time->hour, dec_time->minute, dec_time->second);
+    }
+    else {
+        sprintf(str_buffer, "%02u:%02u:%02u", dec_time->hour, dec_time->minute, dec_time->second);
+    }
 }

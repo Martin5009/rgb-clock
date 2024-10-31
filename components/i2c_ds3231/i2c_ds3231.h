@@ -92,6 +92,6 @@ esp_err_t i2c_ds3231_read(i2c_ds3231_handle_t ds3231_handle, uint32_t address, u
  * @param[in] dec_time Time to print
  * @param[out] str_buffer Buffer into which the string prints
  */
-void i2c_ds3231_print_dec_time(i2c_ds3231_dec_time_t *dec_time, char* str_buffer);
+void i2c_ds3231_print_dec_time(i2c_ds3231_dec_time_t *dec_time, char* str_buffer, bool incl_date);
 
 #endif

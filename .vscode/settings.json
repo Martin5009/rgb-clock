@@ -13,6 +13,7 @@
         "sdkconfig.h": "c",
         "stdlib.h": "c",
         "stdint.h": "c",
-        "resource.h": "c"
+        "resource.h": "c",
+        "esp_console.h": "c"
     }
 }
