@@ -220,6 +220,11 @@ int console_time_cmd_func(int argc, char **argv)
 
     if (strcmp(sub_cmd, "set"))
     {
+        if (argc != 6) {
+            printf("ERROR: number of arguments for sub-cmd SET (%d) does not match expected (5)\n", argc - 1);
+            return 1;
+        }
+
         time_buffer.month = atoi(argv[1]);
         time_buffer.day = atoi(argv[2]);
         time_buffer.hour = atoi(argv[3]);
@@ -236,6 +241,11 @@ int console_time_cmd_func(int argc, char **argv)
     }
     else if (strcmp(sub_cmd, "get"))
     {
+        if (argc != 1) {
+            printf("ERROR: number of arguments for sub-cmd GET (%d) does not match expected (0)\n", argc - 1);
+            return 1;
+        }
+
         xQueuePeek(time_mailbox, &time_buffer, 0);
 
         i2c_ds3231_print_dec_time(&time_buffer, str_buffer, true);
