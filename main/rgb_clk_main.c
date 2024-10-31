@@ -216,7 +216,7 @@ int console_time_cmd_func(int argc, char **argv)
         .month = 0,
     };
 
-    char *str_buffer = NULL;
+    char str_buffer[20];
 
     if (strcmp(sub_cmd, "set"))
     {
@@ -237,7 +237,7 @@ int console_time_cmd_func(int argc, char **argv)
     else if (strcmp(sub_cmd, "get"))
     {
         xQueuePeek(time_mailbox, &time_buffer, 0);
-        
+
         i2c_ds3231_print_dec_time(&time_buffer, str_buffer, true);
         printf("time: current time is ");
         printf(str_buffer);
