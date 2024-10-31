@@ -138,7 +138,7 @@ static void led_matrix_write_screen(led_matrix_handle_t led_matrix_handle)
 
 static void led_matrix_refresh_task(void *pvParameters)
 {   
-    const TickType_t xBlockTime = LED_MATRIX_REFRESH_TIMEOUT_MS;
+    const TickType_t xBlockTime = pdMS_TO_TICKS(LED_MATRIX_REFRESH_TIMEOUT_MS);
     uint32_t ulNotifiedValue;
 
     led_matrix_handle_t led_matrix_handle = (led_matrix_handle_t)pvParameters;
@@ -169,7 +169,8 @@ static void led_matrix_refresh_task(void *pvParameters)
         else
         {
             //timeout error
-            printf("Timeout: 5000ms since last refresh interrupt");
+            printf(TAG);
+            printf(": Timed out - %dms since last refresh interrupt", xBlockTime);
         }
     }
 }
@@ -253,7 +254,7 @@ esp_err_t led_matrix_init(led_matrix_config_t *led_config, led_matrix_handle_t *
         .pull_up_en = 0,
     };
     gpio_config(&io_conf);
-
+    
     //Create led matrix struct
     out_handle->refresh_rate = led_config->refresh_rate;
     out_handle->width = led_config->width;
@@ -282,6 +283,10 @@ err:
 
 esp_err_t led_matrix_start_refresh(led_matrix_handle_t led_matrix_handle)
 {   
+    if (led_matrix_handle == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
     vTaskResume(led_matrix_handle->refresh_task);
     gptimer_enable(led_matrix_handle->refresh_timer);
     return ESP_OK;
@@ -289,6 +294,10 @@ esp_err_t led_matrix_start_refresh(led_matrix_handle_t led_matrix_handle)
 
 esp_err_t led_matrix_stop_refresh(led_matrix_handle_t led_matrix_handle)
 {
+    if (led_matrix_handle == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
     vTaskSuspend(led_matrix_handle->refresh_task);
     gptimer_disable(led_matrix_handle->refresh_timer);
     return ESP_OK;
@@ -299,7 +308,7 @@ void led_matrix_draw_char(led_matrix_handle_t led_matrix_handle, char ch, led_ma
     uint8_t width = led_matrix_handle->width;
     uint8_t buffer_offset = x + y*width;
     led_matrix_rgb_t *buffer = led_matrix_handle->buffer_1;
-    led_matrix_rgb_t empty_rgb = {
+    led_matrix_rgb_t off_rgb = {
         .red = 0,
         .blue = 0,
         .green = 0,
@@ -336,7 +345,7 @@ void led_matrix_draw_char(led_matrix_handle_t led_matrix_handle, char ch, led_ma
             }
             else 
             {
-                buffer[buffer_offset + i + j*width] = empty_rgb;
+                buffer[buffer_offset + i + j*width] = off_rgb;
             }
         }
     }

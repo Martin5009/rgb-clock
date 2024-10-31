@@ -218,16 +218,17 @@ int console_time_cmd_func(int argc, char **argv)
         .month = 0,
     };
 
-    char str_buffer[20];
+    char str_buffer[14];
 
     if (strcmp(sub_cmd, "set"))
     {
+        //Error Check: Correct number of arguments
         if (argc != 6) {
             printf("ERROR: number of arguments for sub-command SET (%d) does not match expected (5)\n", argc - 1);
             return 1;
         }
 
-        //Check if arguments represent a valid time
+        //Error Check: Arguments in range
         if ((atoi(argv[1]) > 12) | (atoi(argv[1]) < 1)) {
             printf("ERROR: month value outside valid range (1-12)\n");
             return 1;
@@ -236,8 +237,8 @@ int console_time_cmd_func(int argc, char **argv)
             printf("ERROR: day value outside valid range (1-31)\n");
             return 1;
         }
-        if ((atoi(argv[3]) > 24) | (atoi(argv[3]) < 0)) {
-            printf("ERROR: hour value outside valid range (0-24)\n");
+        if ((atoi(argv[3]) > 23) | (atoi(argv[3]) < 0)) {
+            printf("ERROR: hour value outside valid range (0-23)\n");
             return 1;
         }
         if ((atoi(argv[4]) > 59) | (atoi(argv[4]) < 0)) {

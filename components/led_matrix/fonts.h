@@ -1,3 +1,8 @@
+/**
+ * Credit for these font bitmaps goes to Jared Sanson.
+ * https://jared.geek.nz/2014/01/custom-fonts-for-microcontrollers/
+*/
+
 #ifndef FONT_H
 #define FONT_H
 

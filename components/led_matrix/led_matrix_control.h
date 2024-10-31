@@ -8,7 +8,7 @@
 #include "driver/gpio.h"
 #include "fonts.h"
 
-#define LED_MATRIX_REFRESH_TIMEOUT_MS pdMS_TO_TICKS(5000)
+#define LED_MATRIX_REFRESH_TIMEOUT_MS 5000
 #define LED_MATRIX_FONT font
 #define LED_MATRIX_CHAR_WIDTH 5
 #define LED_MATRIX_CHAR_HEIGHT 8
