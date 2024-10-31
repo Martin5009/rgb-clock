@@ -221,7 +221,7 @@ int console_time_cmd_func(int argc, char **argv)
     if (strcmp(sub_cmd, "set"))
     {
         if (argc != 6) {
-            printf("ERROR: number of arguments for sub-cmd SET (%d) does not match expected (5)\n", argc - 1);
+            printf("ERROR: number of arguments for sub-command SET (%d) does not match expected (5)\n", argc - 1);
             return 1;
         }
 
@@ -242,7 +242,7 @@ int console_time_cmd_func(int argc, char **argv)
     else if (strcmp(sub_cmd, "get"))
     {
         if (argc != 1) {
-            printf("ERROR: number of arguments for sub-cmd GET (%d) does not match expected (0)\n", argc - 1);
+            printf("ERROR: number of arguments for sub-command GET (%d) does not match expected (0)\n", argc - 1);
             return 1;
         }
 
@@ -255,7 +255,9 @@ int console_time_cmd_func(int argc, char **argv)
     }
     else {
         printf("time: unrecognized command\n");
+        return 1;
     }
+    
     return 0;
 }
 
@@ -333,9 +335,9 @@ void app_main(void)
 
     //Register console commands
     const char *console_time_cmd_help = 
-        "usage: time <command> [<args]\n"
+        "usage: time <sub-command> [<args>]\n"
         "\n"
-        "commands:\n"
+        "sub-commands:\n"
         "   set <month> <day> <hour> <minute> <second>\n"
         "       Set system time\n"
         "   get\n"
@@ -349,8 +351,9 @@ void app_main(void)
         .argtable = NULL,
     };
 
-    esp_console_register_help_command();
     esp_console_cmd_register(&console_time_cmd);
+
+    esp_console_register_help_command();
 
     //Start console
     ESP_ERROR_CHECK(esp_console_start_repl(repl));
