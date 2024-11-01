@@ -15,5 +15,6 @@
         "stdint.h": "c",
         "resource.h": "c",
         "esp_console.h": "c"
-    }
+    },
+    "idf.flashType": "UART"
 }

@@ -170,7 +170,7 @@ static void led_matrix_refresh_task(void *pvParameters)
         {
             //timeout error
             printf(TAG);
-            printf(": Timed out - %dms since last refresh interrupt", xBlockTime);
+            printf(": Timed out - %lums since last refresh interrupt", pdTICKS_TO_MS(xBlockTime));
         }
     }
 }

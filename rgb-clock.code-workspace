@@ -6,7 +6,18 @@
 	],
 	"settings": {
 		"files.associations": {
-			"i2c_ds3231.h": "c"
+			"cstdint": "cpp",
+			"chrono": "c",
+			"string.h": "c",
+			"esp_log.h": "c",
+			"esp_types.h": "c",
+			"esp_check.h": "c",
+			"cdefs.h": "c",
+			"sdkconfig.h": "c",
+			"stdlib.h": "c",
+			"stdint.h": "c",
+			"resource.h": "c",
+			"esp_console.h": "c"
 		}
 	}
 }

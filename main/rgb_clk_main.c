@@ -18,8 +18,8 @@
 #define I2C_MASTER_FREQUENCY 100000
 #define TIME_REFRESH_PERIOD_MS 250
 
-#define DS3231_GPIO_SCL GPIO_NUM_10
-#define DS3231_GPIO_SDA GPIO_NUM_11
+#define DS3231_GPIO_SCL GPIO_NUM_1
+#define DS3231_GPIO_SDA GPIO_NUM_2
 
 #define LED_MATRIX_WIDTH 32
 #define LED_MATRIX_HEIGHT 32
@@ -208,7 +208,7 @@ void led_matrix_blink_task(void *pvParameters)
 
 int console_time_cmd_func(int argc, char **argv)
 {
-    char *sub_cmd = argv[0];
+    char *sub_cmd = argv[1];
 
     i2c_ds3231_dec_time_t time_buffer = {
         .second = 0,
@@ -220,41 +220,41 @@ int console_time_cmd_func(int argc, char **argv)
 
     char str_buffer[14];
 
-    if (strcmp(sub_cmd, "set"))
+    if (!strcmp(sub_cmd, "set"))
     {
         //Error Check: Correct number of arguments
-        if (argc != 6) {
-            printf("ERROR: number of arguments for sub-command SET (%d) does not match expected (5)\n", argc - 1);
+        if (argc != 7) {
+            printf("ERROR: number of arguments for sub-command SET (%d) does not match expected (5)\n", argc - 2);
             return 1;
         }
 
         //Error Check: Arguments in range
-        if ((atoi(argv[1]) > 12) | (atoi(argv[1]) < 1)) {
+        if ((atoi(argv[2]) > 12) | (atoi(argv[2]) < 1)) {
             printf("ERROR: month value outside valid range (1-12)\n");
             return 1;
         }
-        if ((atoi(argv[2]) > 31) | (atoi(argv[2]) < 1)) {
+        if ((atoi(argv[3]) > 31) | (atoi(argv[3]) < 1)) {
             printf("ERROR: day value outside valid range (1-31)\n");
             return 1;
         }
-        if ((atoi(argv[3]) > 23) | (atoi(argv[3]) < 0)) {
+        if ((atoi(argv[4]) > 23) | (atoi(argv[4]) < 0)) {
             printf("ERROR: hour value outside valid range (0-23)\n");
             return 1;
         }
-        if ((atoi(argv[4]) > 59) | (atoi(argv[4]) < 0)) {
+        if ((atoi(argv[5]) > 59) | (atoi(argv[5]) < 0)) {
             printf("ERROR: minute value outside valid range (0-59)\n");
             return 1;
         }
-        if ((atoi(argv[5]) > 59) | (atoi(argv[5]) < 0)) {
+        if ((atoi(argv[6]) > 59) | (atoi(argv[6]) < 0)) {
             printf("ERROR: second value outside valid range (0-59)\n");
             return 1;
         }
 
-        time_buffer.month = atoi(argv[1]);
-        time_buffer.day = atoi(argv[2]);
-        time_buffer.hour = atoi(argv[3]);
-        time_buffer.minute = atoi(argv[4]);
-        time_buffer.second = atoi(argv[5]);
+        time_buffer.month = atoi(argv[2]);
+        time_buffer.day = atoi(argv[3]);
+        time_buffer.hour = atoi(argv[4]);
+        time_buffer.minute = atoi(argv[5]);
+        time_buffer.second = atoi(argv[6]);
 
         i2c_ds3231_set_time(ds3231_handle, &time_buffer);
 
@@ -264,10 +264,10 @@ int console_time_cmd_func(int argc, char **argv)
         printf("]\n");
 
     }
-    else if (strcmp(sub_cmd, "get"))
+    else if (!strcmp(sub_cmd, "get"))
     {
-        if (argc != 1) {
-            printf("ERROR: number of arguments for sub-command GET (%d) does not match expected (0)\n", argc - 1);
+        if (argc != 2) {
+            printf("ERROR: number of arguments for sub-command GET (%d) does not match expected (0)\n", argc - 2);
             return 1;
         }
 
@@ -279,7 +279,7 @@ int console_time_cmd_func(int argc, char **argv)
         printf("]\n");
     }
     else {
-        printf("time: unrecognized command\n");
+        printf(": unrecognized command\n");
         return 1;
     }
 
@@ -316,7 +316,7 @@ void app_main(void)
     };
 
     ESP_ERROR_CHECK(i2c_ds3231_init(bus_handle, &i2c_ds3231_config, &ds3231_handle));
-
+    /*
     //Initialize LED matrix
     TaskHandle_t led_matrix_refresh_task = NULL;
     gptimer_handle_t led_matrix_timer = NULL;
@@ -335,7 +335,7 @@ void app_main(void)
         .b1 = LED_MATRIX_GPIO_B1,
         .b2 = LED_MATRIX_GPIO_B2,
     };
-
+    
     led_matrix_config_t led_matrix_config = {
         .width = LED_MATRIX_WIDTH,
         .height = LED_MATRIX_HEIGHT,
@@ -347,7 +347,7 @@ void app_main(void)
     };
 
     led_matrix_init(&led_matrix_config, &led_matrix_handle);
-
+    */
     //Create console
     esp_console_repl_t *repl = NULL;
     esp_console_repl_config_t repl_config = ESP_CONSOLE_REPL_CONFIG_DEFAULT();
@@ -359,19 +359,18 @@ void app_main(void)
     ESP_ERROR_CHECK(esp_console_new_repl_uart(&hw_config, &repl_config, &repl));
 
     //Register console commands
-    const char *console_time_cmd_help = 
-        "usage: time <sub-command> [<args>]\n"
-        "\n"
-        "sub-commands:\n"
-        "   set <month> <day> <hour> <minute> <second>\n"
-        "       Set system time\n"
-        "   get\n"
-        "       Prints system time to console\n";
+    const char *console_time_cmd_hint = "\n    usage:"
+                                        "\n        time <sub-command> [<args>]"
+                                        "\n"
+                                        "\n    sub-commands:"
+                                        "\n        set <month> <day> <hour> <minute> <second>"
+                                        "\n        get <N/A>\n";
+    const char *console_time_cmd_help = "Fetch or set the time on the DS3231 RTC over I2C interface.";
 
     esp_console_cmd_t console_time_cmd = {
         .command = "time",
         .help = console_time_cmd_help,
-        .hint = NULL,
+        .hint = console_time_cmd_hint,
         .func = console_time_cmd_func,
         .argtable = NULL,
     };
@@ -382,12 +381,12 @@ void app_main(void)
 
     //Start console
     ESP_ERROR_CHECK(esp_console_start_repl(repl));
-
+    /*
     //Test LED matrix with a simple "blink" task
     TaskHandle_t blink_matrix_handle = NULL;
     xTaskCreate(led_matrix_blink_task, "blink_matrix", 5000, led_matrix_handle, 2, &blink_matrix_handle);
-
+    */
     //Start fetch time task for DS3231
     TaskHandle_t fetch_time_handle = NULL;
-    xTaskCreate(fetch_time_task, "fetch_time", 1200, ds3231_handle, 2, &fetch_time_handle);
+    xTaskCreate(fetch_time_task, "fetch_time", 2000, ds3231_handle, 2, &fetch_time_handle);
 }
