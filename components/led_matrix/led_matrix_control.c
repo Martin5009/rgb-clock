@@ -203,7 +203,7 @@ esp_err_t led_matrix_init(led_matrix_config_t *led_config, led_matrix_handle_t *
     ESP_GOTO_ON_FALSE(out_handle, ESP_ERR_NO_MEM, err, TAG, "no memory for led matrix device");
 
     //Create refresh task
-    xTaskCreate(led_matrix_refresh_task, "refresh_matrix", 5000, led_matrix_handle, 5, &led_config->refresh_task);
+    xTaskCreate(led_matrix_refresh_task, "refresh_matrix", 5000, led_matrix_handle, led_config->refresh_priority, &led_config->refresh_task);
     vTaskSuspend(led_config->refresh_task);
 
     //Initialize refresh timer

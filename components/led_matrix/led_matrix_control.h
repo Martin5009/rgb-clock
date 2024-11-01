@@ -9,8 +9,8 @@
 #include "fonts.h"
 
 #define LED_MATRIX_REFRESH_TIMEOUT_MS 5000
-#define LED_MATRIX_FONT font
-#define LED_MATRIX_CHAR_WIDTH 5
+#define LED_MATRIX_FONT sevenlinedigital_font
+#define LED_MATRIX_CHAR_WIDTH 4
 #define LED_MATRIX_CHAR_HEIGHT 8
 
 //Defines the number of brightness levels available 
@@ -56,6 +56,7 @@ typedef struct {
     uint8_t height;
     led_matrix_pwm_levels pwm_level;
     TaskHandle_t refresh_task;      //NULL task handle
+    uint8_t refresh_priority;
     gptimer_handle_t refresh_timer; //NULL gptimer handle
     led_matrix_io_t *io_assign;
 } led_matrix_config_t;
