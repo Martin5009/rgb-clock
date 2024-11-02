@@ -25,19 +25,19 @@
 #define LED_MATRIX_HEIGHT 32
 #define LED_MATRIX_REFRESH_RATE 200
 #define LED_MATRIX_REFRESH_PRIORITY 5
-#define LED_MATRIX_GPIO_A GPIO_NUM_12
-#define LED_MATRIX_GPIO_B GPIO_NUM_13
-#define LED_MATRIX_GPIO_C GPIO_NUM_14
-#define LED_MATRIX_GPIO_D GPIO_NUM_15
-#define LED_MATRIX_GPIO_OE GPIO_NUM_16
-#define LED_MATRIX_GPIO_CLK GPIO_NUM_17
-#define LED_MATRIX_GPIO_LAT GPIO_NUM_18
-#define LED_MATRIX_GPIO_R1 GPIO_NUM_19
-#define LED_MATRIX_GPIO_R2 GPIO_NUM_20
-#define LED_MATRIX_GPIO_G1 GPIO_NUM_21
-#define LED_MATRIX_GPIO_G2 GPIO_NUM_26
-#define LED_MATRIX_GPIO_B1 GPIO_NUM_27
-#define LED_MATRIX_GPIO_B2 GPIO_NUM_28
+#define LED_MATRIX_GPIO_A GPIO_NUM_18
+#define LED_MATRIX_GPIO_B GPIO_NUM_5
+#define LED_MATRIX_GPIO_C GPIO_NUM_17
+#define LED_MATRIX_GPIO_D GPIO_NUM_6
+#define LED_MATRIX_GPIO_OE GPIO_NUM_15
+#define LED_MATRIX_GPIO_CLK GPIO_NUM_16
+#define LED_MATRIX_GPIO_LAT GPIO_NUM_7
+#define LED_MATRIX_GPIO_R1 GPIO_NUM_9
+#define LED_MATRIX_GPIO_R2 GPIO_NUM_3
+#define LED_MATRIX_GPIO_G1 GPIO_NUM_10
+#define LED_MATRIX_GPIO_G2 GPIO_NUM_11
+#define LED_MATRIX_GPIO_B1 GPIO_NUM_46
+#define LED_MATRIX_GPIO_B2 GPIO_NUM_8
 
 #define TIME_DISPLAY_COLOR_R 255
 #define TIME_DISPLAY_COLOR_G 255
@@ -345,7 +345,7 @@ int console_time_cmd_func(int argc, char **argv)
         //Error Check: Correct number of arguments
         if (argc != 7) {
             printf("ERROR: number of arguments for sub-command SET (%d) does not match expected (5)\n", argc - 2);
-            return 1;
+             return 1;
         }
 
         //Error Check: Arguments in range
