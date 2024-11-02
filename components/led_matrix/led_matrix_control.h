@@ -119,4 +119,6 @@ void led_matrix_set_buffer(led_matrix_handle_t led_matrix_handle, led_matrix_rgb
 */
 void led_matrix_clear_buffer(led_matrix_handle_t led_matrix_handle);
 
+void led_matrix_test_task(void *pvParameters);
+
 #endif

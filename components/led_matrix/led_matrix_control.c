@@ -61,13 +61,13 @@ static void led_matrix_write_screen(led_matrix_handle_t led_matrix_handle)
             led_bottom = buffer[(height/2 + row)*width + col];
             
             //determine state of R1 G1 B1 and R2 G2 B2 based on PWM counter
-            r1 = (led_top.red * norm >= pwm_cnt);
-            g1 = (led_top.green * norm >= pwm_cnt);
-            b1 = (led_top.blue * norm >= pwm_cnt);
+            r1 = (led_top.red * norm > pwm_cnt);
+            g1 = (led_top.green * norm > pwm_cnt);
+            b1 = (led_top.blue * norm > pwm_cnt);
 
-            r2 = (led_bottom.red * norm >= pwm_cnt);
-            g2 = (led_bottom.green * norm >= pwm_cnt);
-            b2 = (led_bottom.blue * norm >= pwm_cnt);
+            r2 = (led_bottom.red * norm > pwm_cnt);
+            g2 = (led_bottom.green * norm > pwm_cnt);
+            b2 = (led_bottom.blue * norm > pwm_cnt);
 
             gpio_set_level(io_assign.r1, r1);
             gpio_set_level(io_assign.g1, g1);
@@ -136,6 +136,7 @@ static void led_matrix_write_screen(led_matrix_handle_t led_matrix_handle)
     gpio_set_level(io_assign.oe, 0);
 }
 
+
 static void led_matrix_refresh_task(void *pvParameters)
 {   
     const TickType_t xBlockTime = pdMS_TO_TICKS(LED_MATRIX_REFRESH_TIMEOUT_MS);
@@ -147,10 +148,12 @@ static void led_matrix_refresh_task(void *pvParameters)
     led_matrix_handle->pwm_cnt = 0;
 
     for (;;)
-    {
+    {   
+        //TODO: Re-enable timer interrupt when ready
         ulNotifiedValue = ulTaskNotifyTake(pdTRUE, xBlockTime);
 
-        if (ulNotifiedValue > 0)
+        //if (ulNotifiedValue > 0)
+        if (1)
         {
             //perform refresh
             led_matrix_write_screen(led_matrix_handle);
@@ -170,8 +173,9 @@ static void led_matrix_refresh_task(void *pvParameters)
         {
             //timeout error
             printf(TAG);
-            printf(": Timed out - %lums since last refresh interrupt", pdTICKS_TO_MS(xBlockTime));
+            printf(": Timed out");
         }
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
 
@@ -199,11 +203,12 @@ esp_err_t led_matrix_init(led_matrix_config_t *led_config, led_matrix_handle_t *
 
     //Initialize led matrix struct
     led_matrix_handle_t out_handle;
-    out_handle = (led_matrix_handle_t)calloc(1, sizeof(led_matrix_handle_t));
+    out_handle = (led_matrix_handle_t)calloc(1, sizeof(led_matrix_t));
     ESP_GOTO_ON_FALSE(out_handle, ESP_ERR_NO_MEM, err, TAG, "no memory for led matrix device");
 
     //Create refresh task
-    xTaskCreate(led_matrix_refresh_task, "refresh_matrix", 5000, led_matrix_handle, led_config->refresh_priority, &led_config->refresh_task);
+    xTaskCreate(led_matrix_refresh_task, "refresh_matrix", 8000, out_handle, led_config->refresh_priority, &led_config->refresh_task);
+    ESP_GOTO_ON_FALSE(led_config->refresh_task, ESP_ERR_NO_MEM, err, TAG, "no memory for refresh task stack");
     vTaskSuspend(led_config->refresh_task);
 
     //Initialize refresh timer
@@ -254,7 +259,7 @@ esp_err_t led_matrix_init(led_matrix_config_t *led_config, led_matrix_handle_t *
         .pull_up_en = 0,
     };
     gpio_config(&io_conf);
-    
+
     //Create led matrix struct
     out_handle->refresh_rate = led_config->refresh_rate;
     out_handle->width = led_config->width;
@@ -272,7 +277,6 @@ esp_err_t led_matrix_init(led_matrix_config_t *led_config, led_matrix_handle_t *
     *led_matrix_handle = out_handle;
 
     return ESP_OK;
-
 err:
     free(out_handle->buffer_1);
     gptimer_disable(led_config->refresh_timer);
@@ -286,9 +290,12 @@ esp_err_t led_matrix_start_refresh(led_matrix_handle_t led_matrix_handle)
     if (led_matrix_handle == NULL) {
         return ESP_ERR_INVALID_ARG;
     }
-
     vTaskResume(led_matrix_handle->refresh_task);
+
+    //TODO: Re-enable timer interrupt when ready
     gptimer_enable(led_matrix_handle->refresh_timer);
+    gptimer_start(led_matrix_handle->refresh_timer);
+    
     return ESP_OK;
 }
 
@@ -299,6 +306,7 @@ esp_err_t led_matrix_stop_refresh(led_matrix_handle_t led_matrix_handle)
     }
 
     vTaskSuspend(led_matrix_handle->refresh_task);
+    gptimer_stop(led_matrix_handle->refresh_timer);
     gptimer_disable(led_matrix_handle->refresh_timer);
     return ESP_OK;
 }

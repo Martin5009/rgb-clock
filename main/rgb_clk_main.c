@@ -23,7 +23,7 @@
 
 #define LED_MATRIX_WIDTH 32
 #define LED_MATRIX_HEIGHT 32
-#define LED_MATRIX_REFRESH_RATE 200
+#define LED_MATRIX_REFRESH_RATE 80
 #define LED_MATRIX_REFRESH_PRIORITY 5
 #define LED_MATRIX_GPIO_A GPIO_NUM_18
 #define LED_MATRIX_GPIO_B GPIO_NUM_5
@@ -58,13 +58,20 @@ TaskHandle_t led_matrix_main_handle = NULL;
 QueueHandle_t time_mailbox = NULL;
 
 /*--------------------------------------*/
+// Functions
+/*--------------------------------------*/
+
+void led_matrix_mode_sel(led_matrix_mode mode, TaskHandle_t led_matrix_main_handle)
+{
+    xTaskNotify(led_matrix_main_handle, mode, eSetValueWithOverwrite);
+}
+
+/*--------------------------------------*/
 // Tasks
 /*--------------------------------------*/
 
 void fetch_time_task(void *pvParameters)
-{   i2c_ds3231_handle_t ds3231_handle = (i2c_ds3231_handle_t)pvParameters;
-
-
+{  
     //Initialize system time mailbox
     time_mailbox = xQueueCreate(1, sizeof(i2c_ds3231_dec_time_t));
 
@@ -227,8 +234,6 @@ void led_matrix_main_task(void *pvParameters)
 
     uint32_t ulNotifiedValue;
 
-    led_matrix_mode current_mode;
-
     //Initialize LED matrix
     TaskHandle_t led_matrix_refresh_task = NULL;
     gptimer_handle_t led_matrix_timer = NULL;
@@ -259,7 +264,7 @@ void led_matrix_main_task(void *pvParameters)
         .io_assign = &led_matrix_io_assign,
     };
 
-    led_matrix_init(&led_matrix_config, &led_matrix_handle);
+    ESP_ERROR_CHECK(led_matrix_init(&led_matrix_config, &led_matrix_handle));
 
     led_matrix_clear_buffer(led_matrix_handle);
     led_matrix_start_refresh(led_matrix_handle);
@@ -271,7 +276,7 @@ void led_matrix_main_task(void *pvParameters)
 
     TaskHandle_t blink_matrix_handle = NULL;
     xTaskCreate(led_matrix_blink_task, "blink_matrix", stack_depth, led_matrix_handle, priority, &blink_matrix_handle);
-    vTaskSuspend(blink_matrix_handle);
+    //vTaskSuspend(blink_matrix_handle);
 
     TaskHandle_t clock_matrix_handle = NULL;
     xTaskCreate(led_matrix_clock_task, "clock_matrix", stack_depth, led_matrix_handle, priority, &clock_matrix_handle);
@@ -327,7 +332,12 @@ void led_matrix_main_task(void *pvParameters)
 /*--------------------------------------*/
 
 int console_time_cmd_func(int argc, char **argv)
-{
+{   
+    if (argc <= 1)
+    {
+        printf("time: no arguments or sub-commands provided\n");
+        return 1;
+    }
     char *sub_cmd = argv[1];
 
     i2c_ds3231_dec_time_t time_buffer = {
@@ -408,6 +418,11 @@ int console_time_cmd_func(int argc, char **argv)
 
 int console_matrix_cmd_func(int argc, char **argv)
 {
+    if (argc <= 1)
+    {
+        printf("matrix: no arguments or sub-commands provided\n");
+        return 1;
+    }
     char *sub_cmd = argv[1];
 
     if (!strcmp(sub_cmd, "mode"))
@@ -451,15 +466,6 @@ int console_matrix_cmd_func(int argc, char **argv)
 }
 
 /*--------------------------------------*/
-// Functions
-/*--------------------------------------*/
-
-void led_matrix_mode_sel(led_matrix_mode mode, TaskHandle_t led_matrix_main_handle)
-{
-    xTaskNotify(led_matrix_main_handle, mode, eSetValueWithOverwrite);
-}
-
-/*--------------------------------------*/
 // Entry Point
 /*--------------------------------------*/
 
@@ -467,11 +473,11 @@ void app_main(void)
 {
     //Start fetch time task for DS3231
     TaskHandle_t fetch_time_handle = NULL;
-    xTaskCreate(fetch_time_task, "fetch_time", 2000, ds3231_handle, 2, &fetch_time_handle);
-
+    xTaskCreate(fetch_time_task, "fetch_time", 3000, NULL, 2, &fetch_time_handle);
+    
     //Initialize LED matrix with a simple "blink" task
-    xTaskCreate(led_matrix_main_task, "mode_sel_matrix", 5000, NULL, 3, &led_matrix_main_handle);
-    led_matrix_mode_sel(LED_MATRIX_MODE_BLINK, led_matrix_main_handle);
+    xTaskCreate(led_matrix_main_task, "main_matrix", 8000, NULL, 3, &led_matrix_main_handle);
+    //led_matrix_mode_sel(LED_MATRIX_MODE_BLINK, led_matrix_main_handle);
 
     //Create console
     esp_console_repl_t *repl = NULL;
@@ -486,10 +492,6 @@ void app_main(void)
     //Register console commands
     const char *console_time_cmd_hint = "\n    usage:"
                                         "\n        time <sub-command> [<args>]"
-                                        "\n"
-                                        "\n    sub-commands:"
-                                        "\n        set <month> <day> <hour> <minute> <second>"
-                                        "\n        get <N/A>"
                                         "\n";
     const char *console_time_cmd_help = "Fetch or set the time on the DS3231 RTC over I2C interface.";
 
@@ -504,9 +506,6 @@ void app_main(void)
 
     const char *console_matrix_cmd_hint = "\n   usage:"
                                           "\n       matrix <sum-command> [<args>]"
-                                          "\n"
-                                          "\n   sub-commands:"
-                                          "\n       mode <mode>"
                                           "\n";
     const char *console_matrix_cmd_help = "Interactively change LED matrix operating mode";
 
