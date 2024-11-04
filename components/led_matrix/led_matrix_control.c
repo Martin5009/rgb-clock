@@ -402,4 +402,6 @@ void led_matrix_print_buffer(led_matrix_handle_t led_matrix_handle)
         }
         printf("%s\n", str);
     }
+
+    free(str);
 }
