@@ -386,6 +386,7 @@ void led_matrix_print_buffer(led_matrix_handle_t led_matrix_handle)
 
     uint8_t row, col;
 
+    printf("\nStart\n");
     for (row = 0 ; row < height ; row++)
     {
         for (col = 0 ; col < width ; col++)
@@ -402,6 +403,7 @@ void led_matrix_print_buffer(led_matrix_handle_t led_matrix_handle)
         }
         printf("%s\n", str);
     }
+    printf("End\n");
 
     free(str);
 }
