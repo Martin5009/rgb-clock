@@ -370,3 +370,36 @@ void led_matrix_clear_buffer(led_matrix_handle_t led_matrix_handle)
     memcpy(led_matrix_handle->buffer_1, init_buffer, led_matrix_handle->height * led_matrix_handle->width * sizeof(led_matrix_rgb_t));
     free(init_buffer);
 }
+
+void led_matrix_print_buffer(led_matrix_handle_t led_matrix_handle)
+{
+    led_matrix_rgb_t* buffer = led_matrix_handle->buffer_1;
+    uint8_t height = led_matrix_handle->height;
+    uint8_t width = led_matrix_handle->width;
+
+    char on_char = 'O';
+    char off_char = ' ';
+
+    char* str = (char*)malloc(width + 1);
+
+    led_matrix_rgb_t led;
+
+    uint8_t row, col;
+
+    for (row = 0 ; row < height ; row++)
+    {
+        for (col = 0 ; col < width ; col++)
+        {
+            led = buffer[col + row*width];
+            if((led.red + led.green + led.blue) > 0)
+            {
+                str[col] = on_char;
+            }
+            else
+            {
+                str[col] = off_char;
+            }
+        }
+        printf("%s\n", str);
+    }
+}
