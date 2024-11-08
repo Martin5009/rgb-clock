@@ -90,10 +90,10 @@ static void led_matrix_write_screen(led_matrix_handle_t led_matrix_handle)
         gpio_set_level(io_assign.lat, 0);
 
         //set ABCD to row number
-        a = (row >> 3) & 0b1;   //bit 3 of row
-        b = (row >> 2) & 0b1;   //bit 2 of row
-        c = (row >> 1) & 0b1;   //bit 1 of row 
-        d = row & 0b1;          //bit 0 of row 
+        a = (row >> 0) & 0b1;   //bit 3 of row
+        b = (row >> 1) & 0b1;   //bit 2 of row
+        c = (row >> 2) & 0b1;   //bit 1 of row 
+        d = (row >> 3) & 0b1;   //bit 0 of row 
 
         gpio_set_level(io_assign.a, a);
         gpio_set_level(io_assign.b, b);
@@ -128,10 +128,10 @@ static void led_matrix_write_screen(led_matrix_handle_t led_matrix_handle)
     gpio_set_level(io_assign.lat, 1);
     gpio_set_level(io_assign.lat, 0);
 
-    gpio_set_level(io_assign.a, (((height/2-1) >> 3) & 0b1));
-    gpio_set_level(io_assign.b, (((height/2-1) >> 2) & 0b1));
-    gpio_set_level(io_assign.c, (((height/2-1) >> 1) & 0b1));
-    gpio_set_level(io_assign.d, ((height/2-1) & 0b1));
+    gpio_set_level(io_assign.a, (((height/2-1) >> 0) & 0b1));
+    gpio_set_level(io_assign.b, (((height/2-1) >> 1) & 0b1));
+    gpio_set_level(io_assign.c, (((height/2-1) >> 2) & 0b1));
+    gpio_set_level(io_assign.d, (((height/2-1) >> 3) & 0b1));
 
     gpio_set_level(io_assign.oe, 0);
 }
@@ -340,7 +340,7 @@ void led_matrix_draw_char(led_matrix_handle_t led_matrix_handle, char ch, led_ma
     //Send character to frame buffer
     uint8_t i, j;
     uint8_t ch_bit;
-
+    //TODO: investigate why characters are not printed correctly
     for (i = 0 ; i < LED_MATRIX_CHAR_WIDTH ; i++)
     {
         for (j = 0 ; j < LED_MATRIX_CHAR_HEIGHT ; j++)
@@ -377,16 +377,16 @@ void led_matrix_print_buffer(led_matrix_handle_t led_matrix_handle)
     uint8_t height = led_matrix_handle->height;
     uint8_t width = led_matrix_handle->width;
 
-    char on_char = 'O';
-    char off_char = ' ';
+    char on_char = '0';
+    char off_char = '.';
 
-    char* str = (char*)malloc(width + 1);
+    char* str = (char*)malloc(width);
 
     led_matrix_rgb_t led;
 
     uint8_t row, col;
 
-    printf("\nStart\n");
+    printf("Start\n");
     for (row = 0 ; row < height ; row++)
     {
         for (col = 0 ; col < width ; col++)
@@ -401,7 +401,7 @@ void led_matrix_print_buffer(led_matrix_handle_t led_matrix_handle)
                 str[col] = off_char;
             }
         }
-        printf("%s\n", str);
+        printf("%.*s\n", width, str);
     }
     printf("End\n");
 

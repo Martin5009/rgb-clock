@@ -52,7 +52,10 @@ typedef enum led_matrix_mode led_matrix_mode;
 
 //Global Device Handles
 i2c_ds3231_handle_t ds3231_handle = NULL;
-TaskHandle_t led_matrix_main_handle = NULL;
+led_matrix_handle_t led_matrix_handle = NULL;
+
+//LED Matrix Driver Task Handle
+TaskHandle_t led_matrix_driver_handle = NULL;
 
 //Global System Time Mailbox
 QueueHandle_t time_mailbox = NULL;
@@ -61,9 +64,9 @@ QueueHandle_t time_mailbox = NULL;
 // Functions
 /*--------------------------------------*/
 
-void led_matrix_mode_sel(led_matrix_mode mode, TaskHandle_t led_matrix_main_handle)
+void led_matrix_mode_sel(led_matrix_mode mode, TaskHandle_t led_matrix_driver_handle)
 {
-    xTaskNotify(led_matrix_main_handle, mode, eSetValueWithOverwrite);
+    xTaskNotify(led_matrix_driver_handle, mode, eSetValueWithOverwrite);
 }
 
 /*--------------------------------------*/
@@ -212,10 +215,13 @@ void led_matrix_clock_task(void *pvParameters)
         
         //Draw time string one char at a time
         led_matrix_clear_buffer(led_matrix_handle);
+        /*TODO:
         for (i = 0 ; i < sizeof(time_str) ; i++)
         {
             led_matrix_draw_char(led_matrix_handle, time_str[i], time_color, i*LED_MATRIX_CHAR_WIDTH, 0);
         }
+        */
+        led_matrix_draw_char(led_matrix_handle, 'O', time_color, i*LED_MATRIX_CHAR_WIDTH, 0);
 
         vTaskDelay(pdMS_TO_TICKS(TIME_REFRESH_PERIOD_MS));
     }
@@ -226,11 +232,10 @@ void led_matrix_board_task(void *pvParameters)
 
 }
 
-void led_matrix_main_task(void *pvParameters)
+void led_matrix_driver_task(void *pvParameters)
 {
     uint32_t stack_depth = 5000;
     uint32_t priority = 2;
-    led_matrix_handle_t led_matrix_handle = NULL;
 
     uint32_t ulNotifiedValue;
 
@@ -436,19 +441,23 @@ int console_matrix_cmd_func(int argc, char **argv)
 
         if (!strcmp(mode, "sleep"))
         {
-            led_matrix_mode_sel(LED_MATRIX_MODE_SLEEP, led_matrix_main_handle);
+            led_matrix_mode_sel(LED_MATRIX_MODE_SLEEP, led_matrix_driver_handle);
+        }
+        else if (!strcmp(mode, "print"))
+        {
+            led_matrix_print_buffer(led_matrix_handle);
         }
         else if (!strcmp(mode, "blink"))
         {
-            led_matrix_mode_sel(LED_MATRIX_MODE_BLINK, led_matrix_main_handle);
+            led_matrix_mode_sel(LED_MATRIX_MODE_BLINK, led_matrix_driver_handle);
         }
         else if (!strcmp(mode, "clock"))
         {
-            led_matrix_mode_sel(LED_MATRIX_MODE_CLOCK, led_matrix_main_handle);
+            led_matrix_mode_sel(LED_MATRIX_MODE_CLOCK, led_matrix_driver_handle);
         }
         else if (!strcmp(mode, "board"))
         {
-            led_matrix_mode_sel(LED_MATRIX_MODE_BOARD, led_matrix_main_handle);
+            led_matrix_mode_sel(LED_MATRIX_MODE_BOARD, led_matrix_driver_handle);
         }
         else
         {
@@ -476,7 +485,7 @@ void app_main(void)
     xTaskCreate(fetch_time_task, "fetch_time", 3000, NULL, 2, &fetch_time_handle);
     
     //Initialize LED matrix with a simple "blink" task
-    xTaskCreate(led_matrix_main_task, "main_matrix", 8000, NULL, 3, &led_matrix_main_handle);
+    xTaskCreate(led_matrix_driver_task, "main_matrix", 8000, NULL, 3, &led_matrix_driver_handle);
     //led_matrix_mode_sel(LED_MATRIX_MODE_BLINK, led_matrix_main_handle);
 
     //Create console
