@@ -23,7 +23,7 @@
 
 #define LED_MATRIX_WIDTH 32
 #define LED_MATRIX_HEIGHT 32
-#define LED_MATRIX_REFRESH_RATE 80
+#define LED_MATRIX_REFRESH_RATE 30
 #define LED_MATRIX_REFRESH_PRIORITY 5
 #define LED_MATRIX_GPIO_A GPIO_NUM_18
 #define LED_MATRIX_GPIO_B GPIO_NUM_5
@@ -137,7 +137,10 @@ void max_stack_usage_task(void *pvParameters)
 
 void led_matrix_sleep_task(void *pvParameters)
 {
-
+    for (;;)
+    {
+        vTaskDelay(10000);
+    } 
 }
 
 void led_matrix_blink_task(void *pvParameters)
@@ -200,8 +203,8 @@ void led_matrix_clock_task(void *pvParameters)
         .green = TIME_DISPLAY_COLOR_G,
         .blue = TIME_DISPLAY_COLOR_B,
     };
-
-    char time_str[8];
+    //TODO: dynamic allocation of buffer length
+    char time_str[5];
 
     uint8_t i = 0;
 
@@ -215,13 +218,11 @@ void led_matrix_clock_task(void *pvParameters)
         
         //Draw time string one char at a time
         led_matrix_clear_buffer(led_matrix_handle);
-        /*TODO:
+
         for (i = 0 ; i < sizeof(time_str) ; i++)
         {
             led_matrix_draw_char(led_matrix_handle, time_str[i], time_color, i*LED_MATRIX_CHAR_WIDTH, 0);
         }
-        */
-        led_matrix_draw_char(led_matrix_handle, 'O', time_color, i*LED_MATRIX_CHAR_WIDTH, 0);
 
         vTaskDelay(pdMS_TO_TICKS(TIME_REFRESH_PERIOD_MS));
     }
@@ -229,18 +230,20 @@ void led_matrix_clock_task(void *pvParameters)
 
 void led_matrix_board_task(void *pvParameters)
 {
-
+    for (;;)
+    {
+        vTaskDelay(10000);
+    }
 }
 
 void led_matrix_driver_task(void *pvParameters)
-{
+{   
     uint32_t stack_depth = 5000;
     uint32_t priority = 2;
 
     uint32_t ulNotifiedValue;
 
     //Initialize LED matrix
-    TaskHandle_t led_matrix_refresh_task = NULL;
     gptimer_handle_t led_matrix_timer = NULL;
     led_matrix_io_t led_matrix_io_assign = {
         .a = LED_MATRIX_GPIO_A,
@@ -261,10 +264,8 @@ void led_matrix_driver_task(void *pvParameters)
     led_matrix_config_t led_matrix_config = {
         .width = LED_MATRIX_WIDTH,
         .height = LED_MATRIX_HEIGHT,
-        .pwm_level = LED_MATRIX_PWM_16,
+        .pwm_level = LED_MATRIX_PWM_8,
         .refresh_rate = LED_MATRIX_REFRESH_RATE,
-        .refresh_task = led_matrix_refresh_task,
-        .refresh_priority = LED_MATRIX_REFRESH_PRIORITY,
         .refresh_timer = led_matrix_timer,
         .io_assign = &led_matrix_io_assign,
     };
@@ -281,11 +282,11 @@ void led_matrix_driver_task(void *pvParameters)
 
     TaskHandle_t blink_matrix_handle = NULL;
     xTaskCreate(led_matrix_blink_task, "blink_matrix", stack_depth, led_matrix_handle, priority, &blink_matrix_handle);
-    //vTaskSuspend(blink_matrix_handle);
+    vTaskSuspend(blink_matrix_handle);
 
     TaskHandle_t clock_matrix_handle = NULL;
     xTaskCreate(led_matrix_clock_task, "clock_matrix", stack_depth, led_matrix_handle, priority, &clock_matrix_handle);
-    vTaskSuspend(clock_matrix_handle);
+    //vTaskSuspend(clock_matrix_handle);
 
     TaskHandle_t board_matrix_handle = NULL;
     xTaskCreate(led_matrix_board_task, "board_matrix", stack_depth, led_matrix_handle, priority, &board_matrix_handle);
@@ -294,8 +295,9 @@ void led_matrix_driver_task(void *pvParameters)
     for (;;)
     {
         ulNotifiedValue = ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-
+        
         if (ulNotifiedValue > 0) {
+            led_matrix_clear_buffer(led_matrix_handle);
             switch(ulNotifiedValue) {
                 case LED_MATRIX_MODE_SLEEP: 
                     vTaskResume(sleep_matrix_handle);
@@ -485,8 +487,7 @@ void app_main(void)
     xTaskCreate(fetch_time_task, "fetch_time", 3000, NULL, 2, &fetch_time_handle);
     
     //Initialize LED matrix with a simple "blink" task
-    xTaskCreate(led_matrix_driver_task, "main_matrix", 8000, NULL, 3, &led_matrix_driver_handle);
-    //led_matrix_mode_sel(LED_MATRIX_MODE_BLINK, led_matrix_main_handle);
+    xTaskCreate(led_matrix_driver_task, "main_matrix", 5000, NULL, 3, &led_matrix_driver_handle);
 
     //Create console
     esp_console_repl_t *repl = NULL;

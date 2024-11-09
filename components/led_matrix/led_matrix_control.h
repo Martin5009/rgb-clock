@@ -8,10 +8,9 @@
 #include "driver/gpio.h"
 #include "fonts.h"
 
-#define LED_MATRIX_REFRESH_TIMEOUT_MS 5000
-#define LED_MATRIX_FONT sevenlinedigital_font
-#define LED_MATRIX_CHAR_WIDTH 4
+#define LED_MATRIX_CHAR_WIDTH 5
 #define LED_MATRIX_CHAR_HEIGHT 8
+#define LED_MATRIX_FONT font
 
 //Defines the number of brightness levels available 
 //for individual R, G, or B LEDs
@@ -51,27 +50,23 @@ typedef struct {
 
 //LED matrix configuration
 typedef struct {
-    uint8_t refresh_rate;           
+    uint16_t refresh_rate;           
     uint8_t width;
     uint8_t height;
     led_matrix_pwm_levels pwm_level;
-    TaskHandle_t refresh_task;      //NULL task handle
-    uint8_t refresh_priority;
     gptimer_handle_t refresh_timer; //NULL gptimer handle
     led_matrix_io_t *io_assign;
 } led_matrix_config_t;
 
 //LED matrix object
 typedef struct {
-    uint8_t refresh_rate;
+    uint16_t refresh_rate;
     uint8_t width;
     uint8_t height;
-    uint8_t pwm_cnt;
     led_matrix_pwm_levels pwm_level;
-    TaskHandle_t refresh_task;
-    led_matrix_rgb_t *buffer_1;
+    led_matrix_rgb_t* buffer_1;
     gptimer_handle_t refresh_timer;
-    led_matrix_io_t *io_assign;
+    led_matrix_io_t* io_assign;
 } led_matrix_t;
 
 //LED matrix handle
@@ -119,6 +114,9 @@ void led_matrix_set_buffer(led_matrix_handle_t led_matrix_handle, led_matrix_rgb
 */
 void led_matrix_clear_buffer(led_matrix_handle_t led_matrix_handle);
 
+/**
+ * @brief Print frame buffer
+*/
 void led_matrix_print_buffer(led_matrix_handle_t led_matrix_handle);
 
 #endif

@@ -16,5 +16,6 @@
         "resource.h": "c",
         "esp_console.h": "c"
     },
-    "idf.flashType": "UART"
+    "idf.flashType": "UART",
+    "git.ignoreLimitWarning": true
 }
