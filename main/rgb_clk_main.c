@@ -23,7 +23,7 @@
 
 #define LED_MATRIX_WIDTH 32
 #define LED_MATRIX_HEIGHT 32
-#define LED_MATRIX_REFRESH_RATE 30
+#define LED_MATRIX_REFRESH_RATE 25
 #define LED_MATRIX_REFRESH_PRIORITY 5
 #define LED_MATRIX_GPIO_A GPIO_NUM_18
 #define LED_MATRIX_GPIO_B GPIO_NUM_5
@@ -40,8 +40,8 @@
 #define LED_MATRIX_GPIO_B2 GPIO_NUM_8
 
 #define TIME_DISPLAY_COLOR_R 255
-#define TIME_DISPLAY_COLOR_G 255
-#define TIME_DISPLAY_COLOR_B 255
+#define TIME_DISPLAY_COLOR_G 63
+#define TIME_DISPLAY_COLOR_B 0
 
 enum led_matrix_mode{
     LED_MATRIX_MODE_SLEEP = 1,
@@ -206,6 +206,9 @@ void led_matrix_clock_task(void *pvParameters)
     //TODO: dynamic allocation of buffer length
     char time_str[5];
 
+    uint8_t x_offset = 4;
+    uint8_t y_offset = 11;
+
     uint8_t i = 0;
 
     for (;;)
@@ -221,7 +224,7 @@ void led_matrix_clock_task(void *pvParameters)
 
         for (i = 0 ; i < sizeof(time_str) ; i++)
         {
-            led_matrix_draw_char(led_matrix_handle, time_str[i], time_color, i*LED_MATRIX_CHAR_WIDTH, 0);
+            led_matrix_draw_char(led_matrix_handle, time_str[i], time_color, i*LED_MATRIX_CHAR_WIDTH + x_offset, y_offset);
         }
 
         vTaskDelay(pdMS_TO_TICKS(TIME_REFRESH_PERIOD_MS));
@@ -439,15 +442,11 @@ int console_matrix_cmd_func(int argc, char **argv)
             return 1;
         }
 
-        char *mode = argv[2];
+        char* mode = argv[2];
 
         if (!strcmp(mode, "sleep"))
         {
             led_matrix_mode_sel(LED_MATRIX_MODE_SLEEP, led_matrix_driver_handle);
-        }
-        else if (!strcmp(mode, "print"))
-        {
-            led_matrix_print_buffer(led_matrix_handle);
         }
         else if (!strcmp(mode, "blink"))
         {
@@ -466,6 +465,42 @@ int console_matrix_cmd_func(int argc, char **argv)
             printf("matrix: unrecognized mode");
             return 1;
         }
+    }
+    else if (!strcmp(sub_cmd, "print"))
+    {
+        led_matrix_print_buffer(led_matrix_handle);
+    }
+    else if (!strcmp(sub_cmd, "write"))
+    {
+        if (argc != 5) {
+            printf("ERROR: number of arguments for sub-command WRITE (%d) does not match expected (3)\n", argc - 2);
+            return 1;
+        }
+
+        char* message = argv[2];
+        if (message == NULL)
+        {
+            printf("ERROR: null string pointer");
+            return 1;
+        }
+
+        uint8_t x = atoi(argv[3]);
+        uint8_t y = atoi(argv[4]);
+        if ((x >= led_matrix_handle->width) | (y >= led_matrix_handle->height))
+        {
+            printf("ERROR: (x, y) out of range");
+            return 1;
+        }
+
+        led_matrix_rgb_t message_color = {
+            .red = 255,
+            .green = 255,
+            .blue = 63,
+        };
+
+        led_matrix_clear_buffer(led_matrix_handle);
+        led_matrix_draw_str(led_matrix_handle, message, strlen(message), message_color, x, y);
+
     }
     else
     {
@@ -515,7 +550,7 @@ void app_main(void)
     esp_console_cmd_register(&console_time_cmd);
 
     const char *console_matrix_cmd_hint = "\n   usage:"
-                                          "\n       matrix <sum-command> [<args>]"
+                                          "\n       matrix <sub-command> [<args>]"
                                           "\n";
     const char *console_matrix_cmd_help = "Interactively change LED matrix operating mode";
 

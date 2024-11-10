@@ -99,10 +99,23 @@ esp_err_t led_matrix_stop_refresh(led_matrix_handle_t led_matrix_handle);
  * 
  * @param[in] led_matrix_handle LED matrix handle
  * @param[in] ch Character to draw, either as an ASCII code or single-quoted string (e.g. 'a')
+ * @param[in] color RGB value of the drawn character
  * @param[in] x x-coordinate of the drawn character, where x = 0 is the left edge of display/char
  * @param[in] y y-coordinate of the drawn character, where y = 0 is the top edge of the display/char
 */
 void led_matrix_draw_char(led_matrix_handle_t led_matrix_handle, char ch, led_matrix_rgb_t color, uint8_t x, uint8_t y);
+
+/**
+ * @brief Draws string on LED matrix starting at (x, y)
+ * 
+ * @param[in] led_matrix_handle LED matrix handle
+ * @param[in] str String to draw
+ * @param[in] size Size of string to draw
+ * @param[in] color RGB value of the drawn string
+ * @param[in] x x-coordinate of the drawn string, where x = 0 is the left edge of the display
+ * @param[in] y y-coordinate of the drawn string, where y = 0 is the top edge of the display
+ */
+void led_matrix_draw_str(led_matrix_handle_t led_matrix_handle, char* str, uint8_t size, led_matrix_rgb_t color, uint8_t x, uint8_t y);
 
 /**
  * @brief Set frame buffer

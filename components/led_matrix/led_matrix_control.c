@@ -66,7 +66,9 @@ static bool IRAM_ATTR led_matrix_refresh_cb(gptimer_handle_t timer, const gptime
     gpio_set_level(io.clk, 0);
 
     //update pwm, row, col counter
-    if((row >= height/2 - 1) & (col >= width - 1))
+    col++;
+    
+    if((row >= height/2) & (col >= width))
     {
         row = 0;
         col = 0;
@@ -80,7 +82,7 @@ static bool IRAM_ATTR led_matrix_refresh_cb(gptimer_handle_t timer, const gptime
             pwm_cnt++;
         }
         }
-    else if (col >= width - 1)
+    else if (col >= width)
     {
         //set OE high to disable LEDs
         gpio_set_level(io.oe, 1);
@@ -100,10 +102,6 @@ static bool IRAM_ATTR led_matrix_refresh_cb(gptimer_handle_t timer, const gptime
 
         col = 0;
         row++;
-    }
-    else
-    {
-        col++;
     }
 
     //gptimer_start(timer);
@@ -220,7 +218,7 @@ esp_err_t led_matrix_stop_refresh(led_matrix_handle_t led_matrix_handle)
 void led_matrix_draw_char(led_matrix_handle_t led_matrix_handle, char ch, led_matrix_rgb_t color, uint8_t x, uint8_t y)
 {   
     uint8_t width = led_matrix_handle->width;
-    uint8_t buffer_offset = x + y*width;
+    uint16_t xy_offset = x + y*width;
     led_matrix_rgb_t *buffer = led_matrix_handle->buffer_1;
     led_matrix_rgb_t off_rgb = {
         .red = 0,
@@ -254,13 +252,36 @@ void led_matrix_draw_char(led_matrix_handle_t led_matrix_handle, char ch, led_ma
             ch_bit = (ch_font[i] >> j) & 1;
             if (ch_bit) 
             {   
-                buffer[buffer_offset + i + j*width] = color;
+                buffer[xy_offset + i + j*width] = color;
             }
             else 
             {
-                buffer[buffer_offset + i + j*width] = off_rgb;
+                buffer[xy_offset + i + j*width] = off_rgb;
             }
         }
+    }
+}
+
+void led_matrix_draw_str(led_matrix_handle_t led_matrix_handle, char* str, uint8_t size, led_matrix_rgb_t color, uint8_t x, uint8_t y)
+{   
+    uint8_t i;
+    uint8_t x_ch = x;
+    uint8_t y_ch = y;
+
+    for (i = 0 ; i < size ; i++)
+    {   
+        led_matrix_draw_char(led_matrix_handle, str[i], color, x_ch, y_ch);
+        printf("Printing %c at (%d, %d)\n", str[i], x_ch, y_ch);
+
+        x_ch += LED_MATRIX_CHAR_WIDTH;
+        //Check for text-wrapping condition
+        if (x_ch + LED_MATRIX_CHAR_WIDTH >= led_matrix_handle->width)
+        {
+            x_ch = 0;
+            y_ch += LED_MATRIX_CHAR_HEIGHT;
+        }
+        //Check for overflow condition
+        if (y_ch + LED_MATRIX_CHAR_HEIGHT >= led_matrix_handle->height) break;
     }
 }
 
