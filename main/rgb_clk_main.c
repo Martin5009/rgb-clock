@@ -40,7 +40,7 @@
 #define LED_MATRIX_GPIO_B2 GPIO_NUM_8
 
 #define TIME_DISPLAY_COLOR_R 255
-#define TIME_DISPLAY_COLOR_G 63
+#define TIME_DISPLAY_COLOR_G 0
 #define TIME_DISPLAY_COLOR_B 0
 
 enum led_matrix_mode{
