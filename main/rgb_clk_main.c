@@ -12,6 +12,7 @@
 #include "i2c_ds3231.h"
 #include "led_matrix_control.h"
 #include "esp_console.h"
+#include "esp_wifi.h"
 
 #define PROMPT_STR CONFIG_IDF_TARGET
 
@@ -301,37 +302,25 @@ void led_matrix_driver_task(void *pvParameters)
         ulNotifiedValue = ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
         
         if (ulNotifiedValue > 0) {
+            vTaskSuspend(sleep_matrix_handle);
+            vTaskSuspend(blink_matrix_handle);
+            vTaskSuspend(clock_matrix_handle);
+            vTaskSuspend(board_matrix_handle);
             led_matrix_clear_buffer(led_matrix_handle);
             switch(ulNotifiedValue) {
                 case LED_MATRIX_MODE_SLEEP: 
                     vTaskResume(sleep_matrix_handle);
-                    vTaskSuspend(blink_matrix_handle);
-                    vTaskSuspend(clock_matrix_handle);
-                    vTaskSuspend(board_matrix_handle);
                     break;
                 case LED_MATRIX_MODE_BLINK:
-                    vTaskSuspend(sleep_matrix_handle);
                     vTaskResume(blink_matrix_handle);
-                    vTaskSuspend(clock_matrix_handle);
-                    vTaskSuspend(board_matrix_handle);
                     break;
                 case LED_MATRIX_MODE_CLOCK:
-                    vTaskSuspend(sleep_matrix_handle);
-                    vTaskSuspend(blink_matrix_handle);
                     vTaskResume(clock_matrix_handle);
-                    vTaskSuspend(board_matrix_handle);
                     break;
                 case LED_MATRIX_MODE_BOARD:
-                    vTaskSuspend(sleep_matrix_handle);
-                    vTaskSuspend(blink_matrix_handle);
-                    vTaskSuspend(clock_matrix_handle);
                     vTaskResume(board_matrix_handle);
                     break;
                 default:
-                    vTaskSuspend(sleep_matrix_handle);
-                    vTaskSuspend(blink_matrix_handle);
-                    vTaskSuspend(clock_matrix_handle);
-                    vTaskSuspend(board_matrix_handle);
                     break;
             }
         }
