@@ -17,6 +17,7 @@ static const char TAG[] = "led_matrix";
 //ISR-exclusive variables
 static volatile uint8_t row = 0;
 static volatile uint8_t col = 0;
+static volatile float_t norm;
 
 static volatile led_matrix_rgb_t led_top;
 static volatile led_matrix_rgb_t led_bottom;
@@ -31,8 +32,6 @@ static volatile led_matrix_io_t io;
 
 static bool IRAM_ATTR led_matrix_refresh_cb(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_data)
 {
-    //gptimer_stop(timer);
-
     led_matrix_handle_isr = (led_matrix_handle_t)user_data;
 
     //LED matrix struct members
@@ -50,16 +49,17 @@ static bool IRAM_ATTR led_matrix_refresh_cb(gptimer_handle_t timer, const gptime
     //write to matrix
     led_top = buffer_isr[row*width + col];
     led_bottom = buffer_isr[(height/2 + row)*width + col];
+
+    norm = pwm_level/(8*sizeof(led_top.red));
     
     //determine state of R1 G1 B1 and R2 G2 B2 based on PWM counter
-    //pwm_level/255 is the normalization factor
-    gpio_set_level(io.r1, (led_top.red * pwm_level/255 > pwm_cnt));
-    gpio_set_level(io.g1, (led_top.green * pwm_level/255 > pwm_cnt));
-    gpio_set_level(io.b1, (led_top.blue * pwm_level/255 > pwm_cnt));
+    gpio_set_level(io.r1, ((uint8_t)(led_top.red * norm) > pwm_cnt));
+    gpio_set_level(io.g1, ((uint8_t)(led_top.green * norm) > pwm_cnt));
+    gpio_set_level(io.b1, ((uint8_t)(led_top.blue * norm) > pwm_cnt));
 
-    gpio_set_level(io.r2, (led_bottom.red * pwm_level/255 > pwm_cnt));
-    gpio_set_level(io.g2, (led_bottom.green * pwm_level/255 > pwm_cnt));
-    gpio_set_level(io.b2, (led_bottom.blue * pwm_level/255 > pwm_cnt));
+    gpio_set_level(io.r2, ((uint8_t)(led_bottom.red * norm) > pwm_cnt));
+    gpio_set_level(io.g2, ((uint8_t)(led_bottom.green * norm) > pwm_cnt));
+    gpio_set_level(io.b2, ((uint8_t)(led_bottom.blue * norm) > pwm_cnt));
 
     //pulse CLK to write color bit
     gpio_set_level(io.clk, 1);
@@ -103,8 +103,6 @@ static bool IRAM_ATTR led_matrix_refresh_cb(gptimer_handle_t timer, const gptime
         col = 0;
         row++;
     }
-
-    //gptimer_start(timer);
 
     return false;
 }

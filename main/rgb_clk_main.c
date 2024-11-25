@@ -524,7 +524,7 @@ void app_main(void)
     xTaskCreate(fetch_time_task, "fetch_time", 3000, NULL, 2, &fetch_time_handle);
     
     //Initialize LED matrix with a simple "blink" task
-    xTaskCreate(led_matrix_driver_task, "main_matrix", 5000, NULL, 3, &led_matrix_driver_handle);
+    xTaskCreatePinnedToCore(led_matrix_driver_task, "main_matrix", 5000, NULL, 3, &led_matrix_driver_handle, 1);
 
     //Create console
     esp_console_repl_t *repl = NULL;
