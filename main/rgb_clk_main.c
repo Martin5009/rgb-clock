@@ -16,7 +16,7 @@
 #define PROMPT_STR CONFIG_IDF_TARGET
 
 #define I2C_MASTER_FREQUENCY 100000
-#define TIME_REFRESH_PERIOD_MS 250
+#define TIME_REFRESH_PERIOD_MS 500
 
 #define DS3231_GPIO_SCL GPIO_NUM_39
 #define DS3231_GPIO_SDA GPIO_NUM_40
@@ -210,8 +210,9 @@ void led_matrix_clock_task(void *pvParameters)
 
     uint8_t x_offset = 4;
     uint8_t y_offset = 11;
-
     uint8_t i = 0;
+
+    led_matrix_clear_buffer(led_matrix_handle);
 
     for (;;)
     { 
@@ -222,8 +223,6 @@ void led_matrix_clock_task(void *pvParameters)
         i2c_ds3231_print_dec_time(&time_buffer, time_str, false);
         
         //Draw time string one char at a time
-        led_matrix_clear_buffer(led_matrix_handle);
-
         for (i = 0 ; i < sizeof(time_str) ; i++)
         {
             led_matrix_draw_char(led_matrix_handle, time_str[i], time_color, i*LED_MATRIX_CHAR_WIDTH + x_offset, y_offset);
@@ -523,7 +522,7 @@ void app_main(void)
     TaskHandle_t fetch_time_handle = NULL;
     xTaskCreate(fetch_time_task, "fetch_time", 3000, NULL, 2, &fetch_time_handle);
     
-    //Initialize LED matrix with a simple "blink" task
+    //Initialize LED matrix
     xTaskCreatePinnedToCore(led_matrix_driver_task, "main_matrix", 5000, NULL, 3, &led_matrix_driver_handle, 1);
 
     //Create console
