@@ -25,7 +25,7 @@
 
 #define LED_MATRIX_WIDTH 32
 #define LED_MATRIX_HEIGHT 32
-#define LED_MATRIX_REFRESH_RATE 25
+#define LED_MATRIX_REFRESH_RATE 60
 #define LED_MATRIX_REFRESH_PRIORITY 5
 #define LED_MATRIX_GPIO_A GPIO_NUM_18
 #define LED_MATRIX_GPIO_B GPIO_NUM_5
@@ -148,7 +148,7 @@ void led_matrix_sleep_task(void *pvParameters)
 void led_matrix_blink_task(void *pvParameters)
 {   
     led_matrix_handle_t led_matrix_handle = (led_matrix_handle_t)pvParameters;
-    TickType_t delay = pdMS_TO_TICKS(1000);
+    TickType_t delay = pdMS_TO_TICKS(300);
 
     led_matrix_rgb_t red_rgb = {
             .red = 255,
@@ -268,7 +268,7 @@ void led_matrix_driver_task(void *pvParameters)
     led_matrix_config_t led_matrix_config = {
         .width = LED_MATRIX_WIDTH,
         .height = LED_MATRIX_HEIGHT,
-        .pwm_level = LED_MATRIX_PWM_8,
+        .pwm_level = LED_MATRIX_PWM_64,
         .refresh_rate = LED_MATRIX_REFRESH_RATE,
         .refresh_timer = led_matrix_timer,
         .io_assign = &led_matrix_io_assign,
@@ -455,7 +455,7 @@ int console_matrix_cmd_func(int argc, char **argv)
             return 1;
         }
     }
-    else if (!strcmp(sub_cmd, "print"))
+    else if (!strcmp(sub_cmd, "buffer"))
     {
         led_matrix_print_buffer(led_matrix_handle);
     }
