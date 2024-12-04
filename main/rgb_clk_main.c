@@ -12,7 +12,6 @@
 #include "i2c_ds3231.h"
 #include "led_matrix_control.h"
 #include "esp_console.h"
-#include "esp_wifi.h"
 
 #define PROMPT_STR CONFIG_IDF_TARGET
 
