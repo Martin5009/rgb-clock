@@ -459,7 +459,7 @@ int console_matrix_cmd_func(int argc, char **argv)
     {
         led_matrix_print_buffer(led_matrix_handle);
     }
-    else if (!strcmp(sub_cmd, "write"))
+    else if (!strcmp(sub_cmd, "print"))
     {
         if (argc != 5) {
             printf("ERROR: number of arguments for sub-command WRITE (%d) does not match expected (3)\n", argc - 2);
